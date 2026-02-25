@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestione Ticket</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 p-6">
+
+<h1 class="text-2xl font-bold mb-4">Nuovo / Modifica Ticket</h1>
+
+<label class="block mb-2">Titolo</label>
+<input type="text" id="titolo" class="p-2 border rounded mb-4 w-full">
+
+<label class="block mb-2">Descrizione</label>
+<textarea id="descrizione" class="p-2 border rounded mb-4 w-full"></textarea>
+
+<label class="block mb-2">Data Inserimento</label>
+<input type="date" id="data_inserimento" class="p-2 border rounded mb-4 w-full">
+
+<label class="block mb-2">Stato</label>
+<select id="stato" class="p-2 border rounded mb-4 w-full">
+  <option>Nuovo</option>
+  <option>In lavorazione</option>
+  <option>Completato</option>
+</select>
+
+<button onclick="saveTicket()" class="bg-green-600 text-white px-4 py-2 rounded">Salva</button>
+
+<script>
+const supabaseUrl = "IL_TUO_SUPABASE_URL";
+const supabaseKey = "LA_TUA_ANON_KEY";
+const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+async function saveTicket() {
+  const titolo = document.getElementById('titolo').value;
+  const descrizione = document.getElementById('descrizione').value;
+  const data_inserimento = document.getElementById('data_inserimento').value;
+  const stato = document.getElementById('stato').value;
+
+  const { error } = await supabase.from('tickets').insert([
+    { titolo, descrizione, data_inserimento, stato }
+  ]);
+
+  if(error) alert("Errore: " + error.message);
+  else { alert("Ticket salvato!"); window.close(); }
+}
+</script>
+
+</body>
+</html>
