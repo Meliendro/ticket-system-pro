@@ -32,7 +32,34 @@ const supabaseUrl = "https://lfwhgkscrhsnpfkoehik.supabase.co";
 const supabaseKey = "sb_publishable_J8nVFzeAYSCdOzhEQich0w_jLO9ur-r";
 
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+  
+async function register() {
+  const { error } = await supabase.auth.signUp({
+    email: document.getElementById('email').value,
+    password: document.getElementById('password').value
+  });
+  if(error) alert(error.message);
+  else alert("Registrazione completata");
+}
 
+async function login() {
+  const { error } = await supabase.auth.signInWithPassword({
+    email: document.getElementById('email').value,
+    password: document.getElementById('password').value
+  });
+  if(error) alert(error.message);
+  else {
+    document.getElementById('authSection').style.display="none";
+    loadTickets();
+  }
+}
+
+supabase.auth.onAuthStateChange((event, session) => {
+  if(session) {
+    document.getElementById('authSection').style.display="none";
+    loadTickets();
+  }
+});
 async function saveTicket() {
 
   const { data: maxTicket } = await supabase
