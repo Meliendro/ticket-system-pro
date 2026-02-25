@@ -105,7 +105,8 @@
             </div>
             <div>
                 <label>Bloccante</label>
-                <select id="bloccante-select">
+                <select id="bloccante-select" required>
+                    <option value="" selected disabled>-- Seleziona --</option>
                     <option value="false">Non Bloccante</option>
                     <option value="true">Sì, Bloccante</option>
                 </select>
@@ -137,6 +138,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     const editId = urlParams.get('id');
 
+    // Impostazione Titolo Header
     if (editId) {
         document.getElementById('titolo-header').innerText = "Modifica #" + editId;
         document.getElementById('tkn-id').innerText = editId;
@@ -155,22 +157,27 @@
                 _supabase.from('menu').select('menu')
             ]);
 
-            popolaSelect('stato-select', resStati, 'stato');
-            popolaSelect('tipo-select', resTipi, 'tipo');
-            popolaSelect('priorita-select', resPriorita, 'priorita');
-            popolaSelect('ambito-select', resAmbiti, 'ambito');
-            popolaSelect('menu-select', resMenu, 'menu');
+            popolaSelect('stato-select', resStati, 'stato', 'Seleziona Stato');
+            popolaSelect('tipo-select', resTipi, 'tipo', 'Seleziona Tipo');
+            popolaSelect('priorita-select', resPriorita, 'priorita', 'Seleziona Priorità');
+            popolaSelect('ambito-select', resAmbiti, 'ambito', 'Seleziona Ambito');
+            popolaSelect('menu-select', resMenu, 'menu', 'Seleziona Menu');
 
-            if (editId) await caricaDatiTicket(editId);
+            if (editId) {
+                await caricaDatiTicket(editId);
+            }
         } catch (err) {
             console.error(err);
         }
     }
 
-    function popolaSelect(id, response, column) {
+    // Funzione aggiornata per includere l'opzione vuota di default
+    function popolaSelect(id, response, column, placeholder) {
         const select = document.getElementById(id);
         if (response.data) {
-            select.innerHTML = response.data.map(i => `<option value="${i[column]}">${i[column]}</option>`).join('');
+            let options = `<option value="" selected disabled>-- ${placeholder} --</option>`;
+            options += response.data.map(i => `<option value="${i[column]}">${i[column]}</option>`).join('');
+            select.innerHTML = options;
         }
     }
 
@@ -205,6 +212,7 @@
 
         const res = id ? await _supabase.from('tickets').update(payload).eq('id', id) : await _supabase.from('tickets').insert([payload]);
         if (!res.error) location.href = 'index.html';
+        else alert("Errore durante il salvataggio: " + res.error.message);
     });
 
     inizializza();
