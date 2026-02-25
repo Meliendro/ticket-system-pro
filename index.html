@@ -23,6 +23,7 @@
         .badge-tipo { background: #e8f4fd; color: #3498db; border: 1px solid #3498db; }
         .badge-priorita { background: #fff3e0; color: #e67e22; border: 1px solid #e67e22; }
         .badge-bloccante { background: #ffebee; color: #c0392b; border: 1px solid #c0392b; }
+        .badge-no { background: #f1f2f6; color: #747d8c; border: 1px solid #a4b0be; }
         
         .edit-icon { color: #3498db; cursor: pointer; margin-left: 8px; font-size: 0.9rem; }
         .edit-icon:hover { color: #2980b9; }
@@ -80,7 +81,11 @@
                 return;
             }
 
-            tbody.innerHTML = data.map(ticket => `
+            tbody.innerHTML = data.map(ticket => {
+                // Controllo robusto per il valore bloccante
+                const isBloccante = ticket.bloccante === true || ticket.bloccante === "true" || ticket.bloccante === 1;
+                
+                return `
                 <tr>
                     <td>
                         #${ticket.id}
@@ -92,11 +97,16 @@
                     <td><span class="badge badge-priorita">${ticket.priorita || '-'}</span></td>
                     <td>${ticket.ambito || '-'}</td>
                     <td>${ticket.menu || '-'}</td>
-                    <td><span class="${ticket.bloccante ? 'badge badge-bloccante' : ''}">${ticket.bloccante ? 'SÌ' : 'No'}</span></td>
+                    <td>
+                        <span class="badge ${isBloccante ? 'badge-bloccante' : 'badge-no'}">
+                            ${isBloccante ? 'SÌ' : 'NO'}
+                        </span>
+                    </td>
                     <td><strong>${ticket.titolo || 'Senza titolo'}</strong></td>
                     <td><small>${ticket.descrizione || ''}</small></td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
 
         } catch (err) {
             console.error("Errore:", err);
