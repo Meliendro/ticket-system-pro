@@ -3,88 +3,147 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ticket System Pro</title>
+<title>Gestione Ticket</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-body { font-family:'Segoe UI', sans-serif; background:#f4f4f5; }
-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
-.ticket-card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding:1rem; border-radius:1rem; margin-bottom:0.5rem; box-shadow:0 5px 15px rgba(0,0,0,0.1);}
-button { transition: all 0.2s ease; }
-button:hover { transform: scale(1.03);}
+body { font-family:'Segoe UI', sans-serif; background: #f0f2f5; }
+.form-card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding:2rem; border-radius:1rem; max-width:700px; margin:auto; box-shadow:0 10px 20px rgba(0,0,0,0.1);}
+label { font-weight:600; font-size:0.85rem; color:#374151; display:block; margin-bottom:0.25rem; }
+input, textarea, select { width:100%; padding:0.6rem; margin-bottom:1rem; border:1px solid #d1d5db; border-radius:0.5rem; }
+input:disabled { background:#e5e7eb; color:#6b7280; }
+button { padding:0.6rem 1rem; border-radius:0.5rem; font-weight:600; cursor:pointer; }
+button:hover { opacity:0.9; }
+.original-date { font-size:0.75rem; color:#6b7280; margin-top:-0.75rem; margin-bottom:1rem; }
 </style>
 </head>
-<body class="p-6">
+<body>
 
-<header>
-  <h1 class="text-3xl font-bold text-slate-800">Ticket System Pro</h1>
-  <div>
-    <button onclick="newTicket()" class="bg-blue-600 text-white px-4 py-2 rounded">Nuovo Ticket</button>
-  </div>
-</header>
+<div class="form-card">
+<h1 id="formTitle" class="text-2xl font-bold mb-4">Nuovo Ticket</h1>
 
-<div id="ticketList" class="space-y-2"></div>
+<div>
+<label>Nr Ticket</label>
+<input type="text" id="nrTicket" disabled>
+</div>
+
+<div>
+<label>Titolo</label>
+<input type="text" id="titolo">
+</div>
+
+<div>
+<label>Descrizione</label>
+<textarea id="descrizione" rows="4"></textarea>
+</div>
+
+<div>
+<label>Stato</label>
+<select id="stato">
+  <option value="Nuovo">Nuovo</option>
+  <option value="In lavorazione">In lavorazione</option>
+  <option value="Completato">Completato</option>
+</select>
+</div>
+
+<div>
+<label>Data Inserimento</label>
+<div class="flex items-center gap-2">
+  <input type="date" id="dataInserimento" disabled>
+  <button type="button" id="editDateBtn" class="bg-blue-600 text-white">Modifica</button>
+</div>
+<span id="originalDate" class="original-date"></span>
+</div>
+
+<div class="flex gap-4 mt-4">
+<button id="saveBtn" class="bg-green-600 text-white">Salva Ticket</button>
+<button onclick="window.close()" class="bg-gray-400 text-white">Chiudi</button>
+</div>
+</div>
 
 <script>
-// 🔑 Inserisci qui i tuoi dati Supabase
+// Supabase setup
 const supabaseUrl = "https://tdpmdloicnfqyixlxweh.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg";
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-// Broadcast channel per ricevere aggiornamenti dal form
+// Broadcast channel per refresh lista
 const ticketChannel = new BroadcastChannel('ticket_ytable');
-ticketChannel.onmessage = (msg) => {
-    console.log("Messaggio ricevuto dal form:", msg.data);
-    if(msg.data?.action === 'reload') loadTickets();
-};
 
-// Nuovo ticket
-function newTicket(){
-    const win = window.open("ticket_form.html","_blank","width=800,height=900");
-    if(!win) alert("Impossibile aprire il form: controlla il popup blocker o apri tramite server locale");
+// Legge query string per modifiche
+const params = new URLSearchParams(window.location.search);
+const editNr = params.get('nr');
+let originalDateVal = "";
+
+async function loadTicket(nr){
+    if(!nr) return;
+
+    const { data, error } = await supabase
+        .from('tickets')
+        .select('*')
+        .eq('nr_ticket', nr)
+        .single();
+    if(error){ alert("Errore caricamento ticket: "+error.message); return; }
+
+    document.getElementById('formTitle').innerText = "Modifica Ticket";
+    document.getElementById('nrTicket').value = data.nr_ticket;
+    document.getElementById('titolo').value = data.titolo || "";
+    document.getElementById('descrizione').value = data.descrizione || "";
+    document.getElementById('stato').value = data.stato || "Nuovo";
+    document.getElementById('dataInserimento').value = data.data_inserimento || "";
+    originalDateVal = data.data_inserimento || "";
+    document.getElementById('originalDate').innerText = `(Orig: ${originalDateVal})`;
 }
 
-// Edit ticket
-function editTicket(nr){
-    const win = window.open("ticket_form.html?nr="+nr,"_blank","width=800,height=900");
-    if(!win) alert("Impossibile aprire il form: controlla il popup blocker o apri tramite server locale");
-}
+// Modifica data inserimento
+document.getElementById('editDateBtn').addEventListener('click', ()=>{
+    document.getElementById('dataInserimento').disabled = false;
+});
 
-// Carica i ticket
-async function loadTickets(){
-    try {
-        const { data, error } = await supabase
+// Salvataggio ticket
+document.getElementById('saveBtn').addEventListener('click', async ()=>{
+    const titolo = document.getElementById('titolo').value.trim();
+    if(!titolo){ alert("Il titolo è obbligatorio"); return; }
+
+    const descrizione = document.getElementById('descrizione').value.trim();
+    const stato = document.getElementById('stato').value;
+    const dataInserimento = document.getElementById('dataInserimento').value;
+
+    if(editNr){
+        // Modifica ticket
+        const { error } = await supabase
             .from('tickets')
-            .select('*')
-            .order('nr_ticket',{ascending:true});
-        if(error){ alert("Errore caricamento: "+error.message); return; }
+            .update({ titolo, descrizione, stato, data_inserimento: dataInserimento })
+            .eq('nr_ticket', editNr);
+        if(error){ alert("Errore modifica: "+error.message); return; }
+    } else {
+        // Nuovo ticket
+        const { data: maxData } = await supabase
+            .from('tickets')
+            .select('nr_ticket')
+            .order('nr_ticket',{ascending:false})
+            .limit(1);
+        const newNr = maxData.length ? maxData[0].nr_ticket+1 : 1;
 
-        const container = document.getElementById('ticketList');
-        container.innerHTML = "";
-        if(!data.length) container.innerHTML = "<p>Nessun ticket presente</p>";
-
-        data.forEach(t => {
-            const div = document.createElement('div');
-            div.className = "ticket-card";
-            div.innerHTML = `
-                <b>#${t.nr_ticket}</b> - ${t.titolo || "(nessun titolo)"} <br>
-                Stato: ${t.stato || "(nessuno)"} <br>
-                Data Inserimento: ${t.data_inserimento || "(nessuna)"} <br>
-                <button onclick="editTicket(${t.nr_ticket})" class="bg-yellow-400 text-black px-3 py-1 rounded mt-1">Modifica</button>
-            `;
-            container.appendChild(div);
-        });
-
-        console.log(`Caricati ${data.length} ticket`);
-    } catch(e){
-        alert("Errore generico caricamento ticket: " + e.message);
-        console.error(e);
+        const { error } = await supabase
+            .from('tickets')
+            .insert({ nr_ticket: newNr, titolo, descrizione, stato, data_inserimento: dataInserimento || new Date().toISOString().split('T')[0] });
+        if(error){ alert("Errore creazione: "+error.message); return; }
     }
+
+    alert("Ticket salvato!");
+    ticketChannel.postMessage({ action:'reload' });
+    window.close();
+});
+
+// Caricamento ticket se è modifica
+if(editNr) loadTicket(editNr);
+else{
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('dataInserimento').value = today;
+    originalDateVal = today;
+    document.getElementById('originalDate').innerText = `(Orig: ${originalDateVal})`;
 }
-
-// Ricarica iniziale
-loadTickets();
 </script>
-
 </body>
 </html>
