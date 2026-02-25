@@ -111,7 +111,17 @@ function editTicket(index) {
     window.open('ticket_form.html','_blank','width=800,height=900');
 }
 
-loadTickets();
+async function loadTickets() {
+    let { data: ticketsData, error } = await supabase
+        .from('tickets')
+        .select('*')
+        .order('nrTicket', { ascending: false });
+
+    if (error) { console.error(error); return; }
+
+    tickets = ticketsData;
+    renderTable();
+}
 </script>
 </body>
 </html>
