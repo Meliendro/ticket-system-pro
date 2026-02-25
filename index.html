@@ -1,52 +1,30 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <title>Gestione Record - Lista</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        body { font-family: sans-serif; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    </style>
-</head>
-<body>
-    <h1>Elenco Prodotti</h1>
-    <a href="form.html"><button>Aggiungi Nuovo</button></a>
+// ... dentro lo script di index.html ...
+const _supabase = supabase.createClient('TUO_URL', 'TUA_KEY');
+
+async function caricaDati() {
+    // CAMBIATO: da 'prodotti' a 'tickets'
+    const { data, error } = await _supabase.from('tickets').select('*');
+    if (error) return console.error(error);
     
-    <table id="tabella-prodotti">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nome</th>
-                <th>Descrizione</th>
-                <th>Azioni</th>
-            </tr>
-        </thead>
-        <tbody id="lista-body"></tbody>
-    </table>
+    const tbody = document.getElementById('lista-body');
+    tbody.innerHTML = data.map(item => `
+        <tr>
+            <td>${item.id}</td>
+            <td>${item.nome}</td>
+            <td>${item.descrizione}</td>
+            <td>
+                <button onclick="location.href='form.html?id=${item.id}'">Modifica</button>
+                <button onclick="eliminaRecord(${item.id})" style="color:red">Elimina</button>
+            </td>
+        </tr>
+    `).join('');
+}
 
-    <script>
-        const _supabase = supabase.createClient('https://tdpmdloicnfqyixlxweh.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg');
-
-        async function caricaDati() {
-            const { data, error } = await _supabase.from('prodotti').select('*');
-            if (error) console.error(error);
-            
-            const tbody = document.getElementById('lista-body');
-            tbody.innerHTML = data.map(item => `
-                <tr>
-                    <td>${item.id}</td>
-                    <td>${item.nome}</td>
-                    <td>${item.descrizione}</td>
-                    <td>
-                        <button onclick="location.href='form.html?id=${item.id}'">Modifica</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        caricaDati();
-    </script>
-</body>
-</html>
+async function eliminaRecord(id) {
+    if (confirm("Vuoi davvero eliminare questo ticket?")) {
+        const { error } = await _supabase.from('tickets').delete().eq('id', id);
+        if (error) alert(error.message);
+        else caricaDati(); // Ricarica la lista aggiornata
+    }
+}
+caricaDati();
