@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lista Ticket</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 p-6">
+
+<h1 class="text-3xl font-bold mb-4">Elenco Ticket</h1>
+
+<div id="ticketList" class="space-y-2"></div>
+
+<script>
+  const supabaseUrl = "IL_TUO_SUPABASE_URL";
+  const supabaseKey = "LA_TUA_ANON_KEY";
+  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+  async function loadTickets() {
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('*')
+      .order('nr_ticket', { ascending: true });
+
+    if(error) { console.error(error); return; }
+
+    const container = document.getElementById('ticketList');
+    container.innerHTML = data.map(t => `
+      <div class="p-4 border rounded shadow-sm bg-white">
+        <b>#${t.nr_ticket}</b> - ${t.titolo} (${t.stato})<br>
+        Inserito: ${t.data_inserimento}<br>
+        ${t.descrizione || ''}
+      </div>
+    `).join('');
+  }
+
+  loadTickets();
+</script>
+
+</body>
+</html>
