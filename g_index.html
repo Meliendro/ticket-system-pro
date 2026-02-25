@@ -3,40 +3,75 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lista Ticket</title>
+<title>Ticket System Pro</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body { font-family:'Segoe UI', sans-serif; background:#f4f4f5; }
+header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+.ticket-card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding:1rem; border-radius:1rem; margin-bottom:0.5rem; box-shadow:0 5px 15px rgba(0,0,0,0.1);}
+button { transition: all 0.2s ease; }
+button:hover { transform: scale(1.03);}
+</style>
 </head>
-<body class="bg-slate-50 p-6">
+<body class="p-6">
 
-<h1 class="text-3xl font-bold mb-4">Elenco Ticket</h1>
+<header>
+  <h1 class="text-3xl font-bold text-slate-800">Ticket System Pro</h1>
+  <div>
+    <button onclick="newTicket()" class="bg-blue-600 text-white px-4 py-2 rounded">Nuovo Ticket</button>
+  </div>
+</header>
 
 <div id="ticketList" class="space-y-2"></div>
 
 <script>
-  const supabaseUrl = "IL_TUO_SUPABASE_URL";
-  const supabaseKey = "LA_TUA_ANON_KEY";
-  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+// 🔑 Inserisci qui i tuoi dati Supabase
+const supabaseUrl = "IL_TUO_SUPABASE_URL";
+const supabaseKey = "LA_TUA_ANON_KEY";
+const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-  async function loadTickets() {
+// Broadcast channel per ricevere aggiornamenti dal form
+const ticketChannel = new BroadcastChannel('ticket_ytable');
+ticketChannel.onmessage = (msg) => {
+    if(msg.data?.action === 'reload') loadTickets();
+};
+
+// Nuovo ticket
+function newTicket(){
+    window.open("ticket_form.html","_blank","width=800,height=900");
+}
+
+// Carica i ticket
+async function loadTickets(){
     const { data, error } = await supabase
-      .from('tickets')
-      .select('*')
-      .order('nr_ticket', { ascending: true });
-
-    if(error) { console.error(error); return; }
+        .from('tickets')
+        .select('*')
+        .order('nr_ticket',{ascending:true});
+    if(error){ alert("Errore caricamento: "+error.message); return; }
 
     const container = document.getElementById('ticketList');
-    container.innerHTML = data.map(t => `
-      <div class="p-4 border rounded shadow-sm bg-white">
-        <b>#${t.nr_ticket}</b> - ${t.titolo} (${t.stato})<br>
-        Inserito: ${t.data_inserimento}<br>
-        ${t.descrizione || ''}
-      </div>
-    `).join('');
-  }
+    container.innerHTML = "";
+    data.forEach(t => {
+        const div = document.createElement('div');
+        div.className = "ticket-card";
+        div.innerHTML = `
+            <b>#${t.nr_ticket}</b> - ${t.titolo} <br>
+            Stato: ${t.stato} <br>
+            Data Inserimento: ${t.data_inserimento} <br>
+            <button onclick="editTicket(${t.nr_ticket})" class="bg-yellow-400 text-black px-3 py-1 rounded mt-1">Modifica</button>
+        `;
+        container.appendChild(div);
+    });
+}
 
-  loadTickets();
+// Edit ticket
+function editTicket(nr){
+    window.open("ticket_form.html?nr="+nr,"_blank","width=800,height=900");
+}
+
+// Ricarica iniziale
+loadTickets();
 </script>
 
 </body>
