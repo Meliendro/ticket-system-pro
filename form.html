@@ -1,32 +1,116 @@
-// ... dentro lo script di form.html ...
-const _supabase = supabase.createClient('https://tdpmdloicnfqyixlxweh.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg');
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Ticket - Editor</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 30px; background-color: #f4f7f6; }
+        .container { max-width: 500px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: auto; }
+        h2 { color: #333; margin-top: 0; }
+        input, textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        textarea { height: 100px; resize: vertical; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-save { background-color: #27ae60; color: white; }
+        .btn-cancel { background-color: #95a5a6; color: white; }
+        #messaggio { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
+    </style>
+</head>
+<body>
 
-// Caricamento dati per modifica
-async function caricaRecord(id) {
-    const { data, error } = await _supabase.from('tickets').select('*').eq('id', id).single();
-    if (data) {
-        document.getElementById('prodotto-id').value = data.id;
-        document.getElementById('nome').value = data.nome;
-        document.getElementById('descrizione').value = data.descrizione;
+<div class="container">
+    <h2 id="titolo-pagina">Nuovo Ticket</h2>
+    
+    <div id="messaggio"></div>
+
+    <form id="form-ticket">
+        <input type="hidden" id="ticket-id">
+        
+        <label for="nome">Oggetto / Nome</label>
+        <input type="text" id="nome" placeholder="Inserisci il titolo del ticket" required>
+        
+        <label for="descrizione">Descrizione</label>
+        <textarea id="descrizione" placeholder="Dettagli del problema..."></textarea>
+        
+        <div class="btn-group">
+            <button type="submit" class="btn-save">Salva Ticket</button>
+            <button type="button" class="btn-cancel" onclick="location.href='index.html'">Annulla</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // --- CONFIGURAZIONE ---
+    const SB_URL = 'IL_TUO_URL_SUPABASE'; 
+    const SB_KEY = 'LA_TUA_CHIAVE_ANON_PUBLIC';
+    const _supabase = supabase.createClient(SB_URL, SB_KEY);
+
+    // Gestione parametri URL (per capire se stiamo modificando)
+    const urlParams = new URLSearchParams(window.location.search);
+    const editId = urlParams.get('id');
+
+    // Se c'è un ID, carichiamo i dati esistenti
+    if (editId) {
+        document.getElementById('titolo-pagina').innerText = "Modifica Ticket #" + editId;
+        caricaDatiEsistenti(editId);
     }
-}
 
-// Salvataggio (Insert o Update)
-document.getElementById('form-prodotto').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('prodotto-id').value;
-    const payload = {
-        nome: document.getElementById('nome').value,
-        descrizione: document.getElementById('descrizione').value
-    };
+    async function caricaDatiEsistenti(id) {
+        const { data, error } = await _supabase
+            .from('tickets')
+            .select('*')
+            .eq('id', id)
+            .single();
 
-    let res;
-    if (id) {
-        res = await _supabase.from('tickets').update(payload).eq('id', id);
-    } else {
-        res = await _supabase.from('tickets').insert([payload]);
+        if (error) {
+            mostraErrore("Errore nel caricamento: " + error.message);
+        } else if (data) {
+            document.getElementById('ticket-id').value = data.id;
+            document.getElementById('nome').value = data.nome;
+            document.getElementById('descrizione').value = data.descrizione;
+        }
     }
 
-    if (res.error) alert("Errore: " + res.error.message);
-    else location.href = 'index.html';
-});
+    // Gestione Invio Form
+    document.getElementById('form-ticket').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const id = document.getElementById('ticket-id').value;
+        const nome = document.getElementById('nome').value;
+        const descrizione = document.getElementById('descrizione').value;
+
+        const payload = { nome, descrizione };
+        let risultato;
+
+        try {
+            if (id) {
+                // MODIFICA (Update)
+                risultato = await _supabase.from('tickets').update(payload).eq('id', id);
+            } else {
+                // INSERIMENTO (Insert)
+                risultato = await _supabase.from('tickets').insert([payload]);
+            }
+
+            if (risultato.error) throw risultato.error;
+
+            // Se tutto ok, torna alla lista
+            location.href = 'index.html';
+
+        } catch (err) {
+            mostraErrore("Errore nel salvataggio: " + err.message);
+        }
+    });
+
+    function mostraErrore(testo) {
+        const box = document.getElementById('messaggio');
+        box.style.display = 'block';
+        box.style.backgroundColor = '#f8d7da';
+        box.style.color = '#721c24';
+        box.innerText = testo;
+    }
+</script>
+
+</body>
+</html>
