@@ -7,11 +7,21 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; padding: 30px; background-color: #f4f7f6; }
-        .container { max-width: 500px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: auto; }
+        .container { max-width: 600px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: auto; }
         h2 { color: #333; margin-top: 0; }
-        label { font-weight: bold; display: block; margin-top: 15px; }
-        input, textarea, select { width: 100%; padding: 10px; margin: 5px 0 15px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
-        textarea { height: 100px; resize: vertical; }
+        
+        /* Stile Sessioni/Fieldset */
+        fieldset { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 20px; background-color: #fafafa; }
+        legend { font-weight: bold; color: #2c3e50; padding: 0 10px; }
+        
+        label { font-weight: bold; display: block; margin-top: 10px; font-size: 0.9rem; }
+        input, textarea, select { width: 100%; padding: 10px; margin: 5px 0 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+        
+        /* Checkbox stile */
+        .checkbox-group { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+        .checkbox-group input { width: auto; margin: 0; }
+        
+        textarea { height: 80px; resize: vertical; }
         .btn-group { display: flex; gap: 10px; margin-top: 15px; }
         button { flex: 1; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn-save { background-color: #27ae60; color: white; }
@@ -34,25 +44,39 @@
         <label for="descrizione">Descrizione</label>
         <textarea id="descrizione" placeholder="Dettagli del problema..."></textarea>
         
-        <label for="tipo-select">Tipo</label>
-        <select id="tipo-select" required>
-            <option value="">Caricamento tipi...</option>
-        </select>
+        <fieldset>
+            <legend>Classificazione e Stato</legend>
+            
+            <label for="stato-select">Stato</label>
+            <select id="stato-select" required>
+                <option value="">Caricamento stati...</option>
+            </select>
 
-        <label for="priorita-select">Priorità</label>
-        <select id="priorita-select" required>
-            <option value="">Caricamento priorità...</option>
-        </select>
+            <label for="priorita-select">Priorità</label>
+            <select id="priorita-select" required>
+                <option value="">Caricamento priorità...</option>
+            </select>
 
-        <label for="ambito-select">Ambito</label>
-        <select id="ambito-select" required>
-            <option value="">Caricamento ambiti...</option>
-        </select>
+            <label for="tipo-select">Tipo</label>
+            <select id="tipo-select" required>
+                <option value="">Caricamento tipi...</option>
+            </select>
 
-        <label for="stato-select">Stato</label>
-        <select id="stato-select" required>
-            <option value="">Caricamento stati...</option>
-        </select>
+            <label for="ambito-select">Ambito</label>
+            <select id="ambito-select" required>
+                <option value="">Caricamento ambiti...</option>
+            </select>
+
+            <label for="menu-select">Menu</label>
+            <select id="menu-select" required>
+                <option value="">Caricamento menu...</option>
+            </select>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="bloccante">
+                <label for="bloccante" style="margin:0">Ticket Bloccante</label>
+            </div>
+        </fieldset>
         
         <div class="btn-group">
             <button type="submit" class="btn-save">Salva Ticket</button>
@@ -73,49 +97,41 @@
 
     async function inizializza() {
         try {
-            // Carichiamo STATI, TIPI, PRIORITA e AMBITI contemporaneamente
-            const [resStati, resTipi, resPriorita, resAmbiti] = await Promise.all([
+            // Carichiamo tutte le tabelle contemporaneamente
+            const [resStati, resTipi, resPriorita, resAmbiti, resMenu] = await Promise.all([
                 _supabase.from('stato').select('stato'),
                 _supabase.from('tipo').select('tipo'),
                 _supabase.from('priorita').select('priorita'),
-                _supabase.from('ambito').select('ambito')
+                _supabase.from('ambito').select('ambito'),
+                _supabase.from('menu').select('menu')
             ]);
 
-            // Popolamento STATO
-            const selectStato = document.getElementById('stato-select');
-            if (resStati.error) throw resStati.error;
-            selectStato.innerHTML = resStati.data && resStati.data.length > 0 
-                ? '<option value="">-- Seleziona Stato --</option>' + resStati.data.map(i => `<option value="${i.stato}">${i.stato}</option>`).join('')
-                : '<option value="">Nessun dato in tabella "stato"</option>';
+            popolaSelect('stato-select', resStati, 'stato', '-- Seleziona Stato --');
+            popolaSelect('tipo-select', resTipi, 'tipo', '-- Seleziona Tipo --');
+            popolaSelect('priorita-select', resPriorita, 'priorita', '-- Seleziona Priorità --');
+            popolaSelect('ambito-select', resAmbiti, 'ambito', '-- Seleziona Ambito --');
+            popolaSelect('menu-select', resMenu, 'menu', '-- Seleziona Menu --');
 
-            // Popolamento TIPO
-            const selectTipo = document.getElementById('tipo-select');
-            if (resTipi.error) throw resTipi.error;
-            selectTipo.innerHTML = resTipi.data && resTipi.data.length > 0 
-                ? '<option value="">-- Seleziona Tipo --</option>' + resTipi.data.map(i => `<option value="${i.tipo}">${i.tipo}</option>`).join('')
-                : '<option value="">Nessun dato in tabella "tipo"</option>';
-
-            // Popolamento PRIORITA
-            const selectPriorita = document.getElementById('priorita-select');
-            if (resPriorita.error) throw resPriorita.error;
-            selectPriorita.innerHTML = resPriorita.data && resPriorita.data.length > 0 
-                ? '<option value="">-- Seleziona Priorità --</option>' + resPriorita.data.map(i => `<option value="${i.priorita}">${i.priorita}</option>`).join('')
-                : '<option value="">Nessun dato in tabella "priorita"</option>';
-
-            // Popolamento AMBITO
-            const selectAmbito = document.getElementById('ambito-select');
-            if (resAmbiti.error) throw resAmbiti.error;
-            selectAmbito.innerHTML = resAmbiti.data && resAmbiti.data.length > 0 
-                ? '<option value="">-- Seleziona Ambito --</option>' + resAmbiti.data.map(i => `<option value="${i.ambito}">${i.ambito}</option>`).join('')
-                : '<option value="">Nessun dato in tabella "ambito"</option>';
-
-            // Se siamo in modifica, carichiamo i dati del ticket
             if (editId) {
                 await caricaDatiTicket(editId);
             }
         } catch (err) {
             console.error("Errore Inizializzazione:", err);
             mostraErrore("Errore caricamento tabelle: " + err.message);
+        }
+    }
+
+    function popolaSelect(id, response, column, defaultText) {
+        const select = document.getElementById(id);
+        if (response.error) {
+            select.innerHTML = `<option value="">Errore caricamento</option>`;
+            return;
+        }
+        if (response.data && response.data.length > 0) {
+            select.innerHTML = `<option value="">${defaultText}</option>` + 
+                response.data.map(i => `<option value="${i[column]}">${i[column]}</option>`).join('');
+        } else {
+            select.innerHTML = `<option value="">Nessun dato in ${column}</option>`;
         }
     }
 
@@ -131,6 +147,8 @@
             document.getElementById('tipo-select').value = data.tipo || '';
             document.getElementById('priorita-select').value = data.priorita || '';
             document.getElementById('ambito-select').value = data.ambito || '';
+            document.getElementById('menu-select').value = data.menu || '';
+            document.getElementById('bloccante').checked = data.bloccante || false;
         }
     }
 
@@ -143,7 +161,9 @@
             stato: document.getElementById('stato-select').value,
             tipo: document.getElementById('tipo-select').value,
             priorita: document.getElementById('priorita-select').value,
-            ambito: document.getElementById('ambito-select').value
+            ambito: document.getElementById('ambito-select').value,
+            menu: document.getElementById('menu-select').value,
+            bloccante: document.getElementById('bloccante').checked
         };
 
         try {
