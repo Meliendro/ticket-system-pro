@@ -1,80 +1,52 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ticket System Pro</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-body { font-family:'Segoe UI', sans-serif; background:#f4f4f5; }
-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
-.ticket-card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding:1rem; border-radius:1rem; margin-bottom:0.5rem; box-shadow:0 5px 15px rgba(0,0,0,0.1);}
-button { transition: all 0.2s ease; }
-button:hover { transform: scale(1.03);}
-</style>
+    <meta charset="UTF-8">
+    <title>Gestione Record - Lista</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    </style>
 </head>
-<body class="p-6">
+<body>
+    <h1>Elenco Prodotti</h1>
+    <a href="form.html"><button>Aggiungi Nuovo</button></a>
+    
+    <table id="tabella-prodotti">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Descrizione</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody id="lista-body"></tbody>
+    </table>
 
-<header>
-  <h1 class="text-3xl font-bold text-slate-800">Ticket System Pro</h1>
-  <div>
-    <button id="newTicketBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Nuovo Ticket</button>
-  </div>
-</header>
+    <script>
+        const _supabase = supabase.createClient('https://tdpmdloicnfqyixlxweh.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg');
 
-<div id="ticketList" class="space-y-2"></div>
+        async function caricaDati() {
+            const { data, error } = await _supabase.from('prodotti').select('*');
+            if (error) console.error(error);
+            
+            const tbody = document.getElementById('lista-body');
+            tbody.innerHTML = data.map(item => `
+                <tr>
+                    <td>${item.id}</td>
+                    <td>${item.nome}</td>
+                    <td>${item.descrizione}</td>
+                    <td>
+                        <button onclick="location.href='form.html?id=${item.id}'">Modifica</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
 
-<script>
-// Supabase
-const supabaseUrl = "https://tdpmdloicnfqyixlxweh.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg";
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
-// Broadcast channel per aggiornamento form
-const ticketChannel = new BroadcastChannel('ticket_ytable');
-ticketChannel.onmessage = (msg) => {
-    if(msg.data?.action === 'reload') loadTickets();
-};
-
-// Nuovo ticket
-document.getElementById('newTicketBtn').addEventListener('click', () => {
-    const formWindow = window.open("ticket_form.html","_blank","width=800,height=900");
-    if(!formWindow) alert("Impossibile aprire il form. Controlla che il file 'ticket_form.html' sia nello stesso folder e che i popup non siano bloccati dal browser.");
-});
-
-// Carica i ticket
-async function loadTickets(){
-    const { data, error } = await supabase
-        .from('tickets')
-        .select('*')
-        .order('nr_ticket',{ascending:true});
-    if(error){ alert("Errore caricamento: "+error.message); return; }
-
-    const container = document.getElementById('ticketList');
-    container.innerHTML = "";
-    data.forEach(t => {
-        const div = document.createElement('div');
-        div.className = "ticket-card";
-        div.innerHTML = `
-            <b>#${t.nr_ticket}</b> - ${t.titolo} <br>
-            Stato: ${t.stato} <br>
-            Data Inserimento: ${t.data_inserimento} <br>
-            <button onclick="editTicket(${t.nr_ticket})" class="bg-yellow-400 text-black px-3 py-1 rounded mt-1">Modifica</button>
-        `;
-        container.appendChild(div);
-    });
-}
-
-// Edit ticket
-function editTicket(nr){
-    const formWindow = window.open("ticket_form.html?nr="+nr,"_blank","width=800,height=900");
-    if(!formWindow) alert("Impossibile aprire il form. Controlla il file 'ticket_form.html'.");
-}
-
-// Carica inizialmente
-loadTickets();
-</script>
-
+        caricaDati();
+    </script>
 </body>
 </html>
