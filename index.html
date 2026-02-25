@@ -14,6 +14,7 @@
   <input id="password" type="password" placeholder="Password" class="p-2 text-black rounded">
   <button onclick="login()" class="bg-blue-600 px-4 py-2 rounded ml-2">Login</button>
   <button onclick="register()" class="bg-gray-600 px-4 py-2 rounded ml-2">Register</button>
+  <div id="loginMessage" class="mt-2 text-red-400"></div>
 </div>
   
 <h1 class="text-3xl font-bold mb-6">Ticket System Pro</h1>
@@ -38,40 +39,67 @@ const supabaseUrl = "https://lfwhgkscrhsnpfkoehik.supabase.co";
 const supabaseKey = "sb_publishable_J8nVFzeAYSCdOzhEQich0w_jLO9ur-r";
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-// Funzione per registrazione
-async function register() {
-  const { error } = await supabase.auth.signUp({
-    email: document.getElementById('email').value,
-    password: document.getElementById('password').value
-  });
-  if(error) alert(error.message);
-  else alert("Registrazione completata");
-}
+const loginMessage = document.getElementById('loginMessage');
 
-// Funzione per login
-async function login() {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: document.getElementById('email').value,
-    password: document.getElementById('password').value
-  });
-  if(error) alert(error.message);
-  else {
-    document.getElementById('authSection').style.display="none";
-    loadTickets();
+async function register() {
+  loginMessage.innerText = "";
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
+  if(!email || !password) { loginMessage.innerText = "Inserisci email e password"; return; }
+
+  try {
+    const { error } = await supabase.auth.signUp({ email, password });
+    if(error) loginMessage.innerText = "Errore registrazione: " + error.message;
+    else alert("Registrazione completata, verifica la tua email");
+  } catch(err) {
+    console.error(err);
+    loginMessage.innerText = "Errore imprevisto: " + err.message;
   }
 }
 
-// Controlla sessione attiva all'apertura
+async function login() {
+  loginMessage.innerText = "";
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
+  if(!email || !password) { loginMessage.innerText = "Inserisci email e password"; return; }
+
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if(error) {
+      loginMessage.innerText = "Errore login: " + error.message;
+      console.error(error);
+      return;
+    }
+    if(data.session) {
+      document.getElementById('authSection').style.display = "none";
+      loadTickets();
+    } else {
+      loginMessage.innerText = "Login non riuscito: sessione mancante";
+    }
+  } catch(err) {
+    console.error(err);
+    loginMessage.innerText = "Errore imprevisto: " + err.message;
+  }
+}
+
+// Controllo sessione attiva all'apertura
 (async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if(session) {
-    document.getElementById('authSection').style.display="none";
-    loadTickets();
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if(error) console.error("Errore getSession:", error);
+    if(session) {
+      document.getElementById('authSection').style.display = "none";
+      loadTickets();
+    }
+  } catch(err) {
+    console.error("Errore check session:", err);
   }
 })();
 
-// Salvataggio ticket
 async function saveTicket() {
+  const titolo = document.getElementById('titolo').value.trim();
+  if(!titolo) { alert("Inserisci un titolo"); return; }
+
   const { data: maxTicket } = await supabase
     .from('tickets')
     .select('nr_ticket')
@@ -82,7 +110,7 @@ async function saveTicket() {
 
   await supabase.from('tickets').insert({
     nr_ticket: newNumber,
-    titolo: document.getElementById('titolo').value,
+    titolo,
     stato: "Nuovo",
     data_inserimento: new Date().toISOString().split('T')[0]
   });
@@ -90,29 +118,28 @@ async function saveTicket() {
   loadTickets();
 }
 
-// Caricamento ticket e conteggi
 async function loadTickets() {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('tickets')
     .select('*')
     .order('nr_ticket', { ascending: true });
+
+  if(error) { console.error("Errore loadTickets:", error); return; }
 
   document.getElementById('ticketList').innerHTML =
     data.map(t => `<div class="border p-2 my-2">
       #${t.nr_ticket} - ${t.titolo} (${t.stato})
     </div>`).join('');
 
-  document.getElementById('countNuovi').innerHTML = "Nuovi: " + data.filter(t => t.stato === "Nuovo").length;
-  document.getElementById('countInLavorazione').innerHTML = "In lavorazione: " + data.filter(t => t.stato === "In lavorazione").length;
-  document.getElementById('countCompletati').innerHTML = "Completati: " + data.filter(t => t.stato === "Completato").length;
+  document.getElementById('countNuovi').innerText = "Nuovi: " + data.filter(t => t.stato === "Nuovo").length;
+  document.getElementById('countInLavorazione').innerText = "In lavorazione: " + data.filter(t => t.stato === "In lavorazione").length;
+  document.getElementById('countCompletati').innerText = "Completati: " + data.filter(t => t.stato === "Completato").length;
 }
 
 // Sottoscrizione live
 supabase
   .channel('tickets')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, () => {
-    loadTickets();
-  })
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, () => loadTickets())
   .subscribe();
 
 </script>
