@@ -6,46 +6,113 @@
 <title>Gestione Ticket</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body { font-family:'Segoe UI', sans-serif; background: linear-gradient(135deg,#1e293b,#0f172a); min-height:100vh; }
+.form-card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding:2rem; border-radius:1.5rem; max-width:600px; margin:auto; }
+input, select, textarea { width:100%; padding:0.5rem; border-radius:0.5rem; border:1px solid #d1d5db; margin-bottom:0.8rem; }
+label { font-weight:600; font-size:0.75rem; color:#374151; text-transform:uppercase; margin-bottom:0.2rem; display:block;}
+.original-date { font-size:0.75rem; color:#6b7280; margin-top:-0.5rem; margin-bottom:0.8rem;}
+.edit-date-btn { background:#2563eb; color:white; padding:2px 6px; border-radius:4px; font-size:0.75rem; cursor:pointer; margin-bottom:0.5rem;}
+</style>
 </head>
-<body class="bg-slate-50 p-6">
+<body class="p-6">
 
-<h1 class="text-2xl font-bold mb-4">Nuovo / Modifica Ticket</h1>
+<div class="form-card">
+<h1 id="formTitle" class="text-xl font-bold mb-4">Nuovo Ticket</h1>
 
-<label class="block mb-2">Titolo</label>
-<input type="text" id="titolo" class="p-2 border rounded mb-4 w-full">
+<label>Titolo</label>
+<input type="text" id="titolo">
 
-<label class="block mb-2">Descrizione</label>
-<textarea id="descrizione" class="p-2 border rounded mb-4 w-full"></textarea>
+<label>Descrizione</label>
+<textarea id="descrizione" rows="4"></textarea>
 
-<label class="block mb-2">Data Inserimento</label>
-<input type="date" id="data_inserimento" class="p-2 border rounded mb-4 w-full">
+<label>Data Inserimento</label>
+<div class="flex items-center gap-2">
+<input type="date" id="dataInserimento" disabled>
+<button type="button" id="editDateBtn" class="edit-date-btn">Modifica</button>
+</div>
+<span id="originalData" class="original-date"></span>
 
-<label class="block mb-2">Stato</label>
-<select id="stato" class="p-2 border rounded mb-4 w-full">
-  <option>Nuovo</option>
-  <option>In lavorazione</option>
-  <option>Completato</option>
+<label>Stato</label>
+<select id="stato">
+  <option value="Nuovo">Nuovo</option>
+  <option value="In lavorazione">In lavorazione</option>
+  <option value="Completato">Completato</option>
 </select>
 
-<button onclick="saveTicket()" class="bg-green-600 text-white px-4 py-2 rounded">Salva</button>
+<button onclick="saveTicket()" class="bg-green-600 text-white px-4 py-2 rounded mt-2">Salva</button>
+</div>
 
 <script>
+// 🔑 Inserisci qui i tuoi dati Supabase
 const supabaseUrl = "IL_TUO_SUPABASE_URL";
 const supabaseKey = "LA_TUA_ANON_KEY";
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-async function saveTicket() {
-  const titolo = document.getElementById('titolo').value;
-  const descrizione = document.getElementById('descrizione').value;
-  const data_inserimento = document.getElementById('data_inserimento').value;
-  const stato = document.getElementById('stato').value;
+// Broadcast channel per aggiornare index.html
+const ticketChannel = new BroadcastChannel('ticket_ytable');
 
-  const { error } = await supabase.from('tickets').insert([
-    { titolo, descrizione, data_inserimento, stato }
-  ]);
+// Controllo se apriamo in modifica
+const params = new URLSearchParams(window.location.search);
+const nrTicketMod = params.get("nr");
 
-  if(error) alert("Errore: " + error.message);
-  else { alert("Ticket salvato!"); window.close(); }
+let originalData = new Date().toISOString().split('T')[0];
+document.getElementById('dataInserimento').value = originalData;
+document.getElementById('originalData').innerText = "(Orig: "+originalData+")";
+
+if(nrTicketMod){
+    loadTicket(nrTicketMod);
+}
+
+// Rende modificabile la data inserimento
+document.getElementById('editDateBtn').addEventListener('click',()=> {
+    document.getElementById('dataInserimento').disabled=false;
+});
+
+// Carica ticket esistente
+async function loadTicket(nr){
+    const { data, error } = await supabase
+        .from('tickets')
+        .select('*')
+        .eq('nr_ticket', nr)
+        .single();
+    if(error){ alert(error.message); return; }
+    document.getElementById('titolo').value = data.titolo;
+    document.getElementById('descrizione').value = data.descrizione;
+    document.getElementById('stato').value = data.stato;
+    document.getElementById('dataInserimento').value = data.data_inserimento;
+    originalData = data.data_inserimento;
+    document.getElementById('originalData').innerText="(Orig: "+originalData+")";
+    document.getElementById('formTitle').innerText="Modifica Ticket #"+nr;
+}
+
+// Salva ticket
+async function saveTicket(){
+    let titolo = document.getElementById('titolo').value;
+    let descr = document.getElementById('descrizione').value;
+    let stato = document.getElementById('stato').value;
+    let dataIns = document.getElementById('dataInserimento').value;
+
+    if(!titolo){ alert("Inserisci titolo"); return; }
+
+    if(nrTicketMod){
+        await supabase.from('tickets').update({
+            titolo:titolo, descrizione:descr, stato:stato, data_inserimento:dataIns
+        }).eq('nr_ticket', nrTicketMod);
+    } else {
+        const { data: maxTicket } = await supabase
+            .from('tickets')
+            .select('nr_ticket')
+            .order('nr_ticket',{ascending:false})
+            .limit(1);
+        const newNr = maxTicket.length ? maxTicket[0].nr_ticket+1 : 1;
+        await supabase.from('tickets').insert({
+            nr_ticket:newNr, titolo:titolo, descrizione:descr, stato:stato, data_inserimento:dataIns
+        });
+    }
+
+    ticketChannel.postMessage({ action:'reload' });
+    window.close();
 }
 </script>
 
