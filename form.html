@@ -62,48 +62,45 @@
     document.getElementById('titolo-pagina').innerText = editId ? "Modifica Ticket #" + editId : "Nuovo Ticket";
 
     async function inizializza() {
-        const selectStato = document.getElementById('stato-select');
-        const selectTipo = document.getElementById('tipo-select');
-
         try {
-            // 1. Carichiamo gli STATI
-            const { data: recordsStati, error: errStati } = await _supabase
-                .from('stato')
-                .select('stato');
+            // Carichiamo TIPI e STATI contemporaneamente
+            const [resStati, resTipi] = await Promise.all([
+                _supabase.from('stato').select('stato'),
+                _supabase.from('tipo').select('tipo')
+            ]);
 
-            if (errStati) throw errStati;
+            // Gestione Tendina STATO
+            const selectStato = document.getElementById('stato-select');
+            if (resStati.error) throw resStati.error;
+            if (resStati.data && resStati.data.length > 0) {
+                selectStato.innerHTML = '<option value="">-- Seleziona Stato --</option>' + 
+                    resStati.data.map(item => `<option value="${item.stato}">${item.stato}</option>`).join('');
+            } else {
+                selectStato.innerHTML = '<option value="">Nessun dato in tabella "stato"</option>';
+            }
 
-            selectStato.innerHTML = recordsStati && recordsStati.length > 0 
-                ? '<option value="">-- Seleziona Stato --</option>' + recordsStati.map(item => `<option value="${item.stato}">${item.stato}</option>`).join('')
-                : '<option value="">Nessuno stato in tabella</option>';
+            // Gestione Tendina TIPO
+            const selectTipo = document.getElementById('tipo-select');
+            if (resTipi.error) throw resTipi.error;
+            if (resTipi.data && resTipi.data.length > 0) {
+                selectTipo.innerHTML = '<option value="">-- Seleziona Tipo --</option>' + 
+                    resTipi.data.map(item => `<option value="${item.tipo}">${item.tipo}</option>`).join('');
+            } else {
+                selectTipo.innerHTML = '<option value="">Nessun dato in tabella "tipo"</option>';
+            }
 
-            // 2. Carichiamo i TIPI (Tabella 'tipo', Colonna 'tipo')
-            const { data: recordsTipi, error: errTipi } = await _supabase
-                .from('tipo')
-                .select('tipo');
-
-            if (errTipi) throw errTipi;
-
-            selectTipo.innerHTML = recordsTipi && recordsTipi.length > 0 
-                ? '<option value="">-- Seleziona Tipo --</option>' + recordsTipi.map(item => `<option value="${item.tipo}">${item.tipo}</option>`).join('')
-                : '<option value="">Nessun tipo in tabella</option>';
-
-            // 3. Se siamo in modifica, carichiamo il ticket dopo che le tendine sono pronte
+            // Se siamo in modifica, carichiamo il ticket DOPO che le tendine sono piene
             if (editId) {
                 await caricaDatiTicket(editId);
             }
         } catch (err) {
-            mostraErrore("Errore inizializzazione: " + err.message);
+            console.error("Errore Inizializzazione:", err);
+            mostraErrore("Errore DB: " + err.message);
         }
     }
 
     async function caricaDatiTicket(id) {
-        const { data, error } = await _supabase
-            .from('tickets')
-            .select('*')
-            .eq('id', id)
-            .single();
-
+        const { data, error } = await _supabase.from('tickets').select('*').eq('id', id).single();
         if (error) {
             mostraErrore("Errore caricamento ticket: " + error.message);
         } else if (data) {
@@ -117,7 +114,6 @@
 
     document.getElementById('form-ticket').addEventListener('submit', async (e) => {
         e.preventDefault();
-        
         const id = document.getElementById('ticket-id').value;
         const payload = {
             titolo: document.getElementById('titolo').value,
@@ -127,10 +123,7 @@
         };
 
         try {
-            let res = id ? 
-                await _supabase.from('tickets').update(payload).eq('id', id) : 
-                await _supabase.from('tickets').insert([payload]);
-
+            let res = id ? await _supabase.from('tickets').update(payload).eq('id', id) : await _supabase.from('tickets').insert([payload]);
             if (res.error) throw res.error;
             location.href = 'index.html';
         } catch (err) {
