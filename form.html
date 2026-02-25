@@ -9,7 +9,8 @@
         body { font-family: 'Segoe UI', sans-serif; padding: 30px; background-color: #f4f7f6; }
         .container { max-width: 500px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: auto; }
         h2 { color: #333; margin-top: 0; }
-        input, textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        label { font-weight: bold; display: block; margin-top: 10px; }
+        input, textarea, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
         textarea { height: 100px; resize: vertical; }
         .btn-group { display: flex; gap: 10px; margin-top: 15px; }
         button { flex: 1; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
@@ -34,7 +35,9 @@
         <textarea id="descrizione" placeholder="Dettagli del problema..."></textarea>
         
         <label for="stato">Stato</label>
-        <input type="text" id="stato" placeholder="Esempio: Aperto, In lavorazione...">
+        <select id="stato" required>
+            <option value="">Caricamento stati...</option>
+        </select>
         
         <div class="btn-group">
             <button type="submit" class="btn-save">Salva Ticket</button>
@@ -51,9 +54,29 @@
     const urlParams = new URLSearchParams(window.location.search);
     const editId = urlParams.get('id');
 
-    if (editId) {
-        document.getElementById('titolo-pagina').innerText = "Modifica Ticket #" + editId;
-        caricaDatiEsistenti(editId);
+    // Funzione per caricare gli stati dalla tabella "stato"
+    async function caricaStati() {
+        const { data, error } = await _supabase
+            .from('stato') // Legge dalla tabella stato
+            .select('*');
+
+        const selectStato = document.getElementById('stato');
+        
+        if (error) {
+            console.error("Errore caricamento stati:", error);
+            selectStato.innerHTML = '<option value="">Errore caricamento</option>';
+            return;
+        }
+
+        // Popola la tendina. Assumo che la colonna si chiami 'nome' o 'valore'
+        // Se la colonna ha un altro nome (es. 'descrizione'), cambialo qui sotto
+        selectStato.innerHTML = '<option value="">-- Seleziona Stato --</option>' + 
+            data.map(s => `<option value="${s.nome}">${s.nome}</option>`).join('');
+
+        // Se siamo in modifica, dopo aver caricato gli stati, selezioniamo quello giusto
+        if (editId) {
+            caricaDatiEsistenti(editId);
+        }
     }
 
     async function caricaDatiEsistenti(id) {
@@ -69,6 +92,7 @@
             document.getElementById('ticket-id').value = data.id;
             document.getElementById('titolo').value = data.titolo || '';
             document.getElementById('descrizione').value = data.descrizione || '';
+            // Imposta il valore della select
             document.getElementById('stato').value = data.stato || '';
         }
     }
@@ -81,7 +105,6 @@
         const descrizione = document.getElementById('descrizione').value;
         const stato = document.getElementById('stato').value;
 
-        // Assicurati che le colonne 'titolo', 'descrizione' e 'stato' esistano su Supabase
         const payload = { titolo, descrizione, stato };
         let risultato;
 
@@ -107,6 +130,9 @@
         box.style.color = '#721c24';
         box.innerText = testo;
     }
+
+    // Avvio: prima carichiamo gli stati
+    caricaStati();
 </script>
 
 </body>
