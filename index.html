@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ticket System Pro</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-900 text-white p-10">
+
+<h1 class="text-3xl font-bold mb-6">Ticket System Pro</h1>
+
+<div class="mb-4">
+<input id="titolo" placeholder="Titolo" class="p-2 text-black rounded w-64">
+<button onclick="saveTicket()" class="bg-green-600 px-4 py-2 rounded ml-2">
+Salva
+</button>
+</div>
+
+<div id="ticketList"></div>
+
+<script>
+const supabaseUrl = "https://lfwhgkscrhsnpfkoehik.supabase.co";
+const supabaseKey = "sb_publishable_J8nVFzeAYSCdOzhEQich0w_jLO9ur-r";
+
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+async function saveTicket() {
+
+  const { data: maxTicket } = await supabase
+    .from('tickets')
+    .select('nr_ticket')
+    .order('nr_ticket', { ascending: false })
+    .limit(1);
+
+  const newNumber = maxTicket.length ? maxTicket[0].nr_ticket + 1 : 1;
+
+  await supabase.from('tickets').insert({
+    nr_ticket: newNumber,
+    titolo: document.getElementById('titolo').value,
+    stato: "Nuovo",
+    data_inserimento: new Date().toISOString().split('T')[0]
+  });
+
+  loadTickets();
+}
+
+async function loadTickets() {
+  const { data } = await supabase
+    .from('tickets')
+    .select('*')
+    .order('nr_ticket', { ascending: true });
+
+  document.getElementById('ticketList').innerHTML =
+    data.map(t => `<div class="border p-2 my-2">
+      #${t.nr_ticket} - ${t.titolo} (${t.stato})
+    </div>`).join('');
+}
+
+supabase
+  .channel('tickets')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, () => {
+    loadTickets();
+  })
+  .subscribe();
+
+loadTickets();
+</script>
+
+</body>
+</html>
