@@ -95,7 +95,7 @@
 
     async function inizializza() {
         try {
-            // Carichiamo tutte le tabelle, incluso AMBITO
+            // Carichiamo tutte le tabelle di riferimento
             const [resStati, resTipi, resPriorita, resAmbiti, resMenu] = await Promise.all([
                 _supabase.from('stato').select('stato'),
                 _supabase.from('tipo').select('tipo'),
@@ -122,14 +122,14 @@
     function popolaSelect(id, response, column, defaultText) {
         const select = document.getElementById(id);
         if (response.error) {
-            select.innerHTML = `<option value="">Errore caricamento</option>`;
+            select.innerHTML = `<option value="">Errore: ${response.error.message}</option>`;
             return;
         }
         if (response.data && response.data.length > 0) {
             select.innerHTML = `<option value="">${defaultText}</option>` + 
                 response.data.map(i => `<option value="${i[column]}">${i[column]}</option>`).join('');
         } else {
-            select.innerHTML = `<option value="">Nessun dato in ${column}</option>`;
+            select.innerHTML = `<option value="">Nessun dato trovato</option>`;
         }
     }
 
