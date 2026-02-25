@@ -1,60 +1,32 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <title>Gestione Record - Form</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
-    <h1 id="titolo">Nuovo Record</h1>
-    <form id="form-prodotto">
-        <input type="hidden" id="prodotto-id">
-        <input type="text" id="nome" placeholder="Nome" required><br><br>
-        <textarea id="descrizione" placeholder="Descrizione"></textarea><br><br>
-        <button type="submit">Salva</button>
-        <button type="button" onclick="location.href='index.html'">Annulla</button>
-    </form>
+// ... dentro lo script di form.html ...
+const _supabase = supabase.createClient('TUO_URL', 'TUA_KEY');
 
-    <script>
-        const _supabase = supabase.createClient('https://tdpmdloicnfqyixlxweh.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg');
-        const urlParams = new URLSearchParams(window.location.search);
-        const editId = urlParams.get('id');
+// Caricamento dati per modifica
+async function caricaRecord(id) {
+    const { data, error } = await _supabase.from('tickets').select('*').eq('id', id).single();
+    if (data) {
+        document.getElementById('prodotto-id').value = data.id;
+        document.getElementById('nome').value = data.nome;
+        document.getElementById('descrizione').value = data.descrizione;
+    }
+}
 
-        // Se c'è un ID, siamo in modalità MODIFICA
-        if (editId) {
-            document.getElementById('titolo').innerText = "Modifica Record " + editId;
-            caricaRecord(editId);
-        }
+// Salvataggio (Insert o Update)
+document.getElementById('form-prodotto').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('prodotto-id').value;
+    const payload = {
+        nome: document.getElementById('nome').value,
+        descrizione: document.getElementById('descrizione').value
+    };
 
-        async function caricaRecord(id) {
-            const { data, error } = await _supabase.from('prodotti').select('*').eq('id', id).single();
-            if (data) {
-                document.getElementById('prodotto-id').value = data.id;
-                document.getElementById('nome').value = data.nome;
-                document.getElementById('descrizione').value = data.descrizione;
-            }
-        }
+    let res;
+    if (id) {
+        res = await _supabase.from('tickets').update(payload).eq('id', id);
+    } else {
+        res = await _supabase.from('tickets').insert([payload]);
+    }
 
-        document.getElementById('form-prodotto').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('prodotto-id').value;
-            const payload = {
-                nome: document.getElementById('nome').value,
-                descrizione: document.getElementById('descrizione').value
-            };
-
-            let res;
-            if (id) {
-                // UPDATE
-                res = await _supabase.from('prodotti').update(payload).eq('id', id);
-            } else {
-                // INSERT
-                res = await _supabase.from('prodotti').insert([payload]);
-            }
-
-            if (res.error) alert("Errore: " + res.error.message);
-            else location.href = 'index.html';
-        });
-    </script>
-</body>
-</html>
+    if (res.error) alert("Errore: " + res.error.message);
+    else location.href = 'index.html';
+});
