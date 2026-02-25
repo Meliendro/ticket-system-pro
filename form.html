@@ -67,7 +67,7 @@
             mostraErrore("Errore nel caricamento: " + error.message);
         } else if (data) {
             document.getElementById('ticket-id').value = data.id;
-            document.getElementById('nome').value = data.nome || '';
+            document.getElementById('titolo').value = data.titolo || '';
             document.getElementById('descrizione').value = data.descrizione || '';
             document.getElementById('stato').value = data.stato || '';
         }
@@ -77,12 +77,12 @@
         e.preventDefault();
         
         const id = document.getElementById('ticket-id').value;
-        const nome = document.getElementById('nome').value;
+        const titolo = document.getElementById('titolo').value;
         const descrizione = document.getElementById('descrizione').value;
         const stato = document.getElementById('stato').value;
 
-        // Assicurati che le colonne 'nome', 'descrizione' e 'stato' esistano su Supabase
-        const payload = { nome, descrizione, stato };
+        // Assicurati che le colonne 'titolo', 'descrizione' e 'stato' esistano su Supabase
+        const payload = { titolo, descrizione, stato };
         let risultato;
 
         try {
