@@ -24,7 +24,13 @@
 Salva
 </button>
 </div>
-
+  
+<div class="grid grid-cols-3 gap-4 mb-6">
+  <div class="bg-blue-600 p-4 rounded" id="countNuovi"></div>
+  <div class="bg-yellow-600 p-4 rounded" id="countInLavorazione"></div>
+  <div class="bg-green-600 p-4 rounded" id="countCompletati"></div>
+</div>
+  
 <div id="ticketList"></div>
 
 <script>
@@ -81,6 +87,7 @@ async function saveTicket() {
 }
 
 async function loadTickets() {
+
   const { data } = await supabase
     .from('tickets')
     .select('*')
@@ -90,6 +97,14 @@ async function loadTickets() {
     data.map(t => `<div class="border p-2 my-2">
       #${t.nr_ticket} - ${t.titolo} (${t.stato})
     </div>`).join('');
+
+  const nuovi = data.filter(t => t.stato === "Nuovo").length;
+  const lavorazione = data.filter(t => t.stato === "In lavorazione").length;
+  const completati = data.filter(t => t.stato === "Completato").length;
+
+  document.getElementById('countNuovi').innerHTML = "Nuovi: " + nuovi;
+  document.getElementById('countInLavorazione').innerHTML = "In lavorazione: " + lavorazione;
+  document.getElementById('countCompletati').innerHTML = "Completati: " + completati;
 }
 
 supabase
