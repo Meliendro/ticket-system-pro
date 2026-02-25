@@ -44,6 +44,11 @@
             <option value="">Caricamento priorità...</option>
         </select>
 
+        <label for="ambito-select">Ambito</label>
+        <select id="ambito-select" required>
+            <option value="">Caricamento ambiti...</option>
+        </select>
+
         <label for="stato-select">Stato</label>
         <select id="stato-select" required>
             <option value="">Caricamento stati...</option>
@@ -68,11 +73,12 @@
 
     async function inizializza() {
         try {
-            // Carichiamo STATI, TIPI e PRIORITA contemporaneamente
-            const [resStati, resTipi, resPriorita] = await Promise.all([
+            // Carichiamo STATI, TIPI, PRIORITA e AMBITI contemporaneamente
+            const [resStati, resTipi, resPriorita, resAmbiti] = await Promise.all([
                 _supabase.from('stato').select('stato'),
                 _supabase.from('tipo').select('tipo'),
-                _supabase.from('priorita').select('priorita')
+                _supabase.from('priorita').select('priorita'),
+                _supabase.from('ambito').select('ambito')
             ]);
 
             // Popolamento STATO
@@ -96,6 +102,13 @@
                 ? '<option value="">-- Seleziona Priorità --</option>' + resPriorita.data.map(i => `<option value="${i.priorita}">${i.priorita}</option>`).join('')
                 : '<option value="">Nessun dato in tabella "priorita"</option>';
 
+            // Popolamento AMBITO
+            const selectAmbito = document.getElementById('ambito-select');
+            if (resAmbiti.error) throw resAmbiti.error;
+            selectAmbito.innerHTML = resAmbiti.data && resAmbiti.data.length > 0 
+                ? '<option value="">-- Seleziona Ambito --</option>' + resAmbiti.data.map(i => `<option value="${i.ambito}">${i.ambito}</option>`).join('')
+                : '<option value="">Nessun dato in tabella "ambito"</option>';
+
             // Se siamo in modifica, carichiamo i dati del ticket
             if (editId) {
                 await caricaDatiTicket(editId);
@@ -117,6 +130,7 @@
             document.getElementById('stato-select').value = data.stato || '';
             document.getElementById('tipo-select').value = data.tipo || '';
             document.getElementById('priorita-select').value = data.priorita || '';
+            document.getElementById('ambito-select').value = data.ambito || '';
         }
     }
 
@@ -128,7 +142,8 @@
             descrizione: document.getElementById('descrizione').value,
             stato: document.getElementById('stato-select').value,
             tipo: document.getElementById('tipo-select').value,
-            priorita: document.getElementById('priorita-select').value
+            priorita: document.getElementById('priorita-select').value,
+            ambito: document.getElementById('ambito-select').value
         };
 
         try {
