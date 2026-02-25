@@ -34,6 +34,11 @@
         <label for="descrizione">Descrizione</label>
         <textarea id="descrizione" placeholder="Dettagli del problema..."></textarea>
         
+        <label for="tipo-select">Tipo</label>
+        <select id="tipo-select" required>
+            <option value="">Caricamento tipi...</option>
+        </select>
+
         <label for="stato-select">Stato</label>
         <select id="stato-select" required>
             <option value="">Caricamento stati...</option>
@@ -57,30 +62,33 @@
     document.getElementById('titolo-pagina').innerText = editId ? "Modifica Ticket #" + editId : "Nuovo Ticket";
 
     async function inizializza() {
-        const selectElement = document.getElementById('stato-select');
+        const selectStato = document.getElementById('stato-select');
+        const selectTipo = document.getElementById('tipo-select');
 
         try {
-            // Leggiamo la tabella 'stato' e la colonna 'stato'
-            const { data: records, error: errStati } = await _supabase
+            // 1. Carichiamo gli STATI
+            const { data: recordsStati, error: errStati } = await _supabase
                 .from('stato')
                 .select('stato');
 
             if (errStati) throw errStati;
 
-            if (records && records.length > 0) {
-                selectElement.innerHTML = '<option value="">-- Seleziona Stato --</option>';
-                records.forEach(item => {
-                    const option = document.createElement('option');
-                    // item.stato è il valore della colonna 'stato'
-                    option.value = item.stato; 
-                    option.textContent = item.stato;
-                    selectElement.appendChild(option);
-                });
-            } else {
-                selectElement.innerHTML = '<option value="">Nessuno stato in tabella</option>';
-            }
+            selectStato.innerHTML = recordsStati && recordsStati.length > 0 
+                ? '<option value="">-- Seleziona Stato --</option>' + recordsStati.map(item => `<option value="${item.stato}">${item.stato}</option>`).join('')
+                : '<option value="">Nessuno stato in tabella</option>';
 
-            // Dopo aver caricato la lista, se siamo in modifica, carichiamo il ticket
+            // 2. Carichiamo i TIPI (Tabella 'tipo', Colonna 'tipo')
+            const { data: recordsTipi, error: errTipi } = await _supabase
+                .from('tipo')
+                .select('tipo');
+
+            if (errTipi) throw errTipi;
+
+            selectTipo.innerHTML = recordsTipi && recordsTipi.length > 0 
+                ? '<option value="">-- Seleziona Tipo --</option>' + recordsTipi.map(item => `<option value="${item.tipo}">${item.tipo}</option>`).join('')
+                : '<option value="">Nessun tipo in tabella</option>';
+
+            // 3. Se siamo in modifica, carichiamo il ticket dopo che le tendine sono pronte
             if (editId) {
                 await caricaDatiTicket(editId);
             }
@@ -103,6 +111,7 @@
             document.getElementById('titolo').value = data.titolo || '';
             document.getElementById('descrizione').value = data.descrizione || '';
             document.getElementById('stato-select').value = data.stato || '';
+            document.getElementById('tipo-select').value = data.tipo || '';
         }
     }
 
@@ -113,7 +122,8 @@
         const payload = {
             titolo: document.getElementById('titolo').value,
             descrizione: document.getElementById('descrizione').value,
-            stato: document.getElementById('stato-select').value
+            stato: document.getElementById('stato-select').value,
+            tipo: document.getElementById('tipo-select').value
         };
 
         try {
