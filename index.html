@@ -5,22 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Tickets - Lista</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; line-height: 1.6; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #f4f4f4; }
-        tr:hover { background-color: #f9f9f9; }
-        .btn { padding: 8px 15px; cursor: pointer; border: none; border-radius: 4px; text-decoration: none; display: inline-block; }
-        .btn-add { background-color: #2ecc71; color: white; margin-bottom: 10px; }
-        .btn-edit { background-color: #3498db; color: white; margin-right: 5px; }
-        .btn-delete { background-color: #e74c3c; color: white; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; line-height: 1.6; background-color: #f8f9fa; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border-bottom: 1px solid #eee; padding: 15px; text-align: left; }
+        th { background-color: #f4f4f4; color: #333; text-transform: uppercase; font-size: 0.85rem; }
+        tr:hover { background-color: #f1f1f1; }
+        
+        /* Stile Pulsanti */
+        .btn { padding: 8px 15px; cursor: pointer; border: none; border-radius: 4px; text-decoration: none; display: inline-block; font-size: 0.9rem; transition: 0.3s; }
+        .btn-add { background-color: #2ecc71; color: white; margin-bottom: 20px; }
+        .btn-add:hover { background-color: #27ae60; }
+        .btn-edit { background-color: #3498db; color: white; padding: 5px 10px; }
+        .btn-delete { background-color: #e74c3c; color: white; margin-left: 5px; }
+        
+        /* Etichetta Stato */
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; background: #dfe6e9; color: #636e72; }
+        
+        /* Icona modifica ID */
+        .edit-icon { color: #3498db; cursor: pointer; margin-left: 8px; font-size: 0.9rem; }
+        .edit-icon:hover { color: #2980b9; }
     </style>
 </head>
 <body>
 
+<div class="container">
     <h1>Elenco Tickets</h1>
-    <a href="form.html" class="btn btn-add">+ Nuovo Ticket</a>
+    <a href="form.html" class="btn btn-add"><i class="fas fa-plus"></i> Nuovo Ticket</a>
     
     <div id="status-msg"></div>
 
@@ -28,79 +42,76 @@
         <thead>
             <tr>
                 <th>ID</th>
-                <th>stato</th>
+                <th>Stato</th>
                 <th>Titolo</th>
                 <th>Descrizione</th>
-                <th>Azioni</th>
+                <th style="text-align: center;">Azioni</th>
             </tr>
         </thead>
         <tbody id="lista-body">
-            <tr><td colspan="4">Caricamento in corso...</td></tr>
+            <tr><td colspan="5">Caricamento in corso...</td></tr>
         </tbody>
     </table>
+</div>
 
-    <script>
-        // --- CONFIGURAZIONE ---
-        const SB_URL = 'https://tdpmdloicnfqyixlxweh.supabase.co'; 
-        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg';
-        
-        const _supabase = supabase.createClient(SB_URL, SB_KEY);
+<script>
+    const SB_URL = 'https://tdpmdloicnfqyixlxweh.supabase.co'; 
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg';
+    const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
-        async function caricaDati() {
-            const tbody = document.getElementById('lista-body');
-            const statusMsg = document.getElementById('status-msg');
+    async function caricaDati() {
+        const tbody = document.getElementById('lista-body');
+        const statusMsg = document.getElementById('status-msg');
 
-            try {
-                // Chiamata a Supabase sulla tabella 'tickets'
-                const { data, error } = await _supabase
-                    .from('tickets')
-                    .select('*')
-                    .order('id', { ascending: false });
-
-                if (error) throw error;
-
-                if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4">Nessun ticket trovato.</td></tr>';
-                    return;
-                }
-
-                // Generazione righe della tabella
-                tbody.innerHTML = data.map(ticket => `
-                    <tr>
-                        <td>${ticket.id}</td>
-                        <td><strong>${ticket.titolo || 'N/A'}</strong></td>
-                        <td>${ticket.descrizione || ''}</td>
-                        <td>
-                            <button class="btn btn-edit" onclick="location.href='form.html?id=${ticket.id}'">Modifica</button>
-                            <button class="btn btn-delete" onclick="eliminaRecord(${ticket.id})">Elimina</button>
-                        </td>
-                    </tr>
-                `).join('');
-
-            } catch (err) {
-                console.error("Errore completo:", err);
-                statusMsg.innerHTML = `<p style="color:red"><b>Errore:</b> ${err.message}</p>`;
-                tbody.innerHTML = '<tr><td colspan="4" style="color:red">Impossibile caricare i dati.</td></tr>';
-            }
-        }
-
-        async function eliminaRecord(id) {
-            if (!confirm("Sei sicuro di voler eliminare questo ticket?")) return;
-
-            const { error } = await _supabase
+        try {
+            const { data, error } = await _supabase
                 .from('tickets')
-                .delete()
-                .eq('id', id);
+                .select('*')
+                .order('id', { ascending: false });
 
-            if (error) {
-                alert("Errore durante l'eliminazione: " + error.message);
-            } else {
-                caricaDati(); // Ricarica la lista
+            if (error) throw error;
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">Nessun ticket trovato.</td></tr>';
+                return;
             }
-        }
 
-        // Avvio automatico al caricamento della pagina
-        caricaDati();
-    </script>
+            tbody.innerHTML = data.map(ticket => `
+                <tr>
+                    <td>
+                        #${ticket.id}
+                        <i class="fas fa-pen-to-square edit-icon" title="Modifica Rapida" onclick="location.href='form.html?id=${ticket.id}'"></i>
+                    </td>
+                    <td><span class="badge">${ticket.stato || 'N.D.'}</span></td>
+                    <td><strong>${ticket.titolo || 'Senza titolo'}</strong></td>
+                    <td>${ticket.descrizione || '<small style="color:#ccc">Nessuna descrizione</small>'}</td>
+                    <td style="text-align: center;">
+                        <button class="btn btn-edit" onclick="location.href='form.html?id=${ticket.id}'">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-delete" onclick="eliminaRecord(${ticket.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+        } catch (err) {
+            console.error("Errore:", err);
+            statusMsg.innerHTML = `<p style="color:red"><b>Errore:</b> ${err.message}</p>`;
+            tbody.innerHTML = '<tr><td colspan="5" style="color:red">Errore nel caricamento.</td></tr>';
+        }
+    }
+
+    async function eliminaRecord(id) {
+        if (!confirm("Sei sicuro di voler eliminare questo ticket?")) return;
+        const { error } = await _supabase.from('tickets').delete().eq('id', id);
+        if (error) alert("Errore: " + error.message);
+        else caricaDati();
+    }
+
+    caricaDati();
+</script>
+
 </body>
 </html>
