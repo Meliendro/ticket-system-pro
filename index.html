@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; line-height: 1.6; background-color: #f8f9fa; }
-        .container { max-width: 1600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .container { max-width: 1650px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         h1 { color: #2c3e50; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: left; font-size: 0.85rem; }
@@ -27,6 +27,7 @@
         
         .date-cell { font-family: monospace; font-size: 0.8rem; color: #555; white-space: nowrap; }
         .incarico-cell { font-weight: 600; color: #2c3e50; }
+        .insert-date { color: #95a5a6; font-size: 0.75rem; }
 
         .edit-icon { color: #3498db; cursor: pointer; margin-left: 8px; font-size: 0.9rem; }
         .edit-icon:hover { color: #2980b9; }
@@ -46,6 +47,7 @@
         <thead>
             <tr>
                 <th>ID</th>
+                <th>Inserito il</th>
                 <th>Stato</th>
                 <th>Tipo</th>
                 <th>Priorità</th>
@@ -58,7 +60,7 @@
             </tr>
         </thead>
         <tbody id="lista-body">
-            <tr><td colspan="10">Caricamento in corso...</td></tr>
+            <tr><td colspan="11">Caricamento in corso...</td></tr>
         </tbody>
     </table>
 </div>
@@ -68,11 +70,25 @@
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg';
     const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
-    // Funzione per formattare la data da YYYY-MM-DD a DD/MM/YYYY
-    function formattaData(isoDate) {
-        if (!isoDate) return '-';
-        const parti = isoDate.split('-');
-        return `${parti[2]}/${parti[1]}/${parti[0]}`;
+    // Funzione potenziata per formattare date e timestamp
+    function formattaData(dateStr, includeTime = false) {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        if (isNaN(date)) return '-';
+        
+        const d = String(date.getDate()).padStart(2, '0');
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const y = date.getFullYear();
+        
+        let formatted = `${d}/${m}/${y}`;
+        
+        if (includeTime) {
+            const hh = String(date.getHours()).padStart(2, '0');
+            const mm = String(date.getMinutes()).padStart(2, '0');
+            formatted += ` ${hh}:${mm}`;
+        }
+        
+        return formatted;
     }
 
     async function caricaDati() {
@@ -88,7 +104,7 @@
             if (error) throw error;
 
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10">Nessun ticket trovato.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11">Nessun ticket trovato.</td></tr>';
                 return;
             }
 
@@ -102,6 +118,7 @@
                         <i class="fas fa-pen-to-square edit-icon" title="Modifica" onclick="location.href='form.html?id=${ticket.id}'"></i>
                         <i class="fas fa-trash delete-trigger" title="Elimina" onclick="eliminaRecord(${ticket.id})"></i>
                     </td>
+                    <td class="date-cell insert-date">${formattaData(ticket.created_at, true)}</td>
                     <td><span class="badge">${ticket.stato || 'N.D.'}</span></td>
                     <td><span class="badge badge-tipo">${ticket.tipo || '-'}</span></td>
                     <td><span class="badge badge-priorita">${ticket.priorita || '-'}</span></td>
@@ -122,7 +139,7 @@
         } catch (err) {
             console.error("Errore:", err);
             statusMsg.innerHTML = `<p style="color:red"><b>Errore:</b> ${err.message}</p>`;
-            tbody.innerHTML = '<tr><td colspan="10" style="color:red">Errore nel caricamento.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="11" style="color:red">Errore nel caricamento.</td></tr>';
         }
     }
 
