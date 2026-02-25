@@ -1,0 +1,109 @@
+<!-- file: tickets.html -->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestione Ticket</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+body {
+    font-family: 'San Francisco', 'Segoe UI', sans-serif;
+    background: linear-gradient(to bottom,#f5f5f7,#ffffff);
+}
+.table-container {
+    overflow-x: auto;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(10px);
+    border-radius: 1rem;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    padding: 1rem;
+}
+thead th {
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top:0;
+}
+button {
+    transition: all 0.2s ease;
+}
+button:hover {
+    transform: scale(1.05);
+}
+</style>
+</head>
+<body class="p-6">
+<header class="flex justify-between items-center mb-4">
+    <h1 class="text-3xl font-extrabold text-gray-800">Gestione Ticket</h1>
+    <div class="flex gap-3">
+        <button onclick="newTicket()" class="bg-blue-600 text-white px-4 py-2 rounded-xl shadow hover:bg-blue-700">
+            <i class="fas fa-plus"></i> Nuovo Ticket
+        </button>
+    </div>
+</header>
+
+<div class="flex gap-2 flex-wrap mb-4">
+    <select id="filterStato" class="p-2 rounded border border-gray-300"></select>
+    <select id="filterTipo" class="p-2 rounded border border-gray-300"></select>
+    <select id="filterPriorita" class="p-2 rounded border border-gray-300"></select>
+    <select id="filterAmbito" class="p-2 rounded border border-gray-300"></select>
+</div>
+
+<div class="table-container">
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+        <thead>
+            <tr>
+                <th class="px-3 py-2">#</th>
+                <th class="px-3 py-2">Nr Ticket</th>
+                <th class="px-3 py-2">Stato</th>
+                <th class="px-3 py-2">Priorità</th>
+                <th class="px-3 py-2">Titolo</th>
+                <th class="px-3 py-2">Azioni</th>
+            </tr>
+        </thead>
+        <tbody id="ticketBody"></tbody>
+    </table>
+</div>
+
+<script>
+let tickets = []; // Caricati da Supabase
+async function loadTickets() {
+    // esempio fetch Supabase
+    tickets = await fetch('/api/getTickets').then(r=>r.json());
+    renderTable();
+}
+
+function renderTable() {
+    const tbody = document.getElementById('ticketBody');
+    tbody.innerHTML = '';
+    tickets.forEach((t,i)=>{
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-gray-100 transition";
+        tr.innerHTML = `
+        <td class="px-3 py-2">${i+1}</td>
+        <td class="px-3 py-2">${t.nrTicket}</td>
+        <td class="px-3 py-2">${t.stato}</td>
+        <td class="px-3 py-2">${t.priorita}</td>
+        <td class="px-3 py-2">${t.titolo}</td>
+        <td class="px-3 py-2">
+            <button onclick="editTicket(${i})" class="bg-yellow-400 px-2 py-1 rounded text-white"><i class="fas fa-edit"></i></button>
+        </td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function newTicket() {
+    window.open('ticket_form.html','_blank','width=800,height=900');
+}
+
+function editTicket(index) {
+    localStorage.setItem('edit_ticket', JSON.stringify(tickets[index]));
+    window.open('ticket_form.html','_blank','width=800,height=900');
+}
+
+loadTickets();
+</script>
+</body>
+</html>
