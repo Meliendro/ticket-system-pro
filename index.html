@@ -34,40 +34,52 @@ const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 // Broadcast channel per ricevere aggiornamenti dal form
 const ticketChannel = new BroadcastChannel('ticket_ytable');
 ticketChannel.onmessage = (msg) => {
+    console.log("Messaggio ricevuto dal form:", msg.data);
     if(msg.data?.action === 'reload') loadTickets();
 };
 
 // Nuovo ticket
 function newTicket(){
-    window.open("ticket_form.html","_blank","width=800,height=900");
-}
-
-// Carica i ticket
-async function loadTickets(){
-    const { data, error } = await supabase
-        .from('tickets')
-        .select('*')
-        .order('nr_ticket',{ascending:true});
-    if(error){ alert("Errore caricamento: "+error.message); return; }
-
-    const container = document.getElementById('ticketList');
-    container.innerHTML = "";
-    data.forEach(t => {
-        const div = document.createElement('div');
-        div.className = "ticket-card";
-        div.innerHTML = `
-            <b>#${t.nr_ticket}</b> - ${t.titolo} <br>
-            Stato: ${t.stato} <br>
-            Data Inserimento: ${t.data_inserimento} <br>
-            <button onclick="editTicket(${t.nr_ticket})" class="bg-yellow-400 text-black px-3 py-1 rounded mt-1">Modifica</button>
-        `;
-        container.appendChild(div);
-    });
+    const win = window.open("ticket_form.html","_blank","width=800,height=900");
+    if(!win) alert("Impossibile aprire il form: controlla il popup blocker o apri tramite server locale");
 }
 
 // Edit ticket
 function editTicket(nr){
-    window.open("ticket_form.html?nr="+nr,"_blank","width=800,height=900");
+    const win = window.open("ticket_form.html?nr="+nr,"_blank","width=800,height=900");
+    if(!win) alert("Impossibile aprire il form: controlla il popup blocker o apri tramite server locale");
+}
+
+// Carica i ticket
+async function loadTickets(){
+    try {
+        const { data, error } = await supabase
+            .from('tickets')
+            .select('*')
+            .order('nr_ticket',{ascending:true});
+        if(error){ alert("Errore caricamento: "+error.message); return; }
+
+        const container = document.getElementById('ticketList');
+        container.innerHTML = "";
+        if(!data.length) container.innerHTML = "<p>Nessun ticket presente</p>";
+
+        data.forEach(t => {
+            const div = document.createElement('div');
+            div.className = "ticket-card";
+            div.innerHTML = `
+                <b>#${t.nr_ticket}</b> - ${t.titolo || "(nessun titolo)"} <br>
+                Stato: ${t.stato || "(nessuno)"} <br>
+                Data Inserimento: ${t.data_inserimento || "(nessuna)"} <br>
+                <button onclick="editTicket(${t.nr_ticket})" class="bg-yellow-400 text-black px-3 py-1 rounded mt-1">Modifica</button>
+            `;
+            container.appendChild(div);
+        });
+
+        console.log(`Caricati ${data.length} ticket`);
+    } catch(e){
+        alert("Errore generico caricamento ticket: " + e.message);
+        console.error(e);
+    }
 }
 
 // Ricarica iniziale
