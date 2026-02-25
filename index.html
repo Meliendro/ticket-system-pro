@@ -19,10 +19,10 @@
 <h1 class="text-3xl font-bold mb-6">Ticket System Pro</h1>
 
 <div class="mb-4">
-<input id="titolo" placeholder="Titolo" class="p-2 text-black rounded w-64">
-<button onclick="saveTicket()" class="bg-green-600 px-4 py-2 rounded ml-2">
-Salva
-</button>
+  <input id="titolo" placeholder="Titolo" class="p-2 text-black rounded w-64">
+  <button onclick="saveTicket()" class="bg-green-600 px-4 py-2 rounded ml-2">
+    Salva
+  </button>
 </div>
   
 <div class="grid grid-cols-3 gap-4 mb-6">
@@ -36,9 +36,9 @@ Salva
 <script>
 const supabaseUrl = "https://lfwhgkscrhsnpfkoehik.supabase.co";
 const supabaseKey = "sb_publishable_J8nVFzeAYSCdOzhEQich0w_jLO9ur-r";
-
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-  
+
+// Funzione per registrazione
 async function register() {
   const { error } = await supabase.auth.signUp({
     email: document.getElementById('email').value,
@@ -48,8 +48,9 @@ async function register() {
   else alert("Registrazione completata");
 }
 
+// Funzione per login
 async function login() {
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: document.getElementById('email').value,
     password: document.getElementById('password').value
   });
@@ -60,14 +61,17 @@ async function login() {
   }
 }
 
-supabase.auth.onAuthStateChange((event, session) => {
+// Controlla sessione attiva all'apertura
+(async () => {
+  const { data: { session } } = await supabase.auth.getSession();
   if(session) {
     document.getElementById('authSection').style.display="none";
     loadTickets();
   }
-});
-async function saveTicket() {
+})();
 
+// Salvataggio ticket
+async function saveTicket() {
   const { data: maxTicket } = await supabase
     .from('tickets')
     .select('nr_ticket')
@@ -86,8 +90,8 @@ async function saveTicket() {
   loadTickets();
 }
 
+// Caricamento ticket e conteggi
 async function loadTickets() {
-
   const { data } = await supabase
     .from('tickets')
     .select('*')
@@ -98,15 +102,12 @@ async function loadTickets() {
       #${t.nr_ticket} - ${t.titolo} (${t.stato})
     </div>`).join('');
 
-  const nuovi = data.filter(t => t.stato === "Nuovo").length;
-  const lavorazione = data.filter(t => t.stato === "In lavorazione").length;
-  const completati = data.filter(t => t.stato === "Completato").length;
-
-  document.getElementById('countNuovi').innerHTML = "Nuovi: " + nuovi;
-  document.getElementById('countInLavorazione').innerHTML = "In lavorazione: " + lavorazione;
-  document.getElementById('countCompletati').innerHTML = "Completati: " + completati;
+  document.getElementById('countNuovi').innerHTML = "Nuovi: " + data.filter(t => t.stato === "Nuovo").length;
+  document.getElementById('countInLavorazione').innerHTML = "In lavorazione: " + data.filter(t => t.stato === "In lavorazione").length;
+  document.getElementById('countCompletati').innerHTML = "Completati: " + data.filter(t => t.stato === "Completato").length;
 }
 
+// Sottoscrizione live
 supabase
   .channel('tickets')
   .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, () => {
@@ -114,7 +115,6 @@ supabase
   })
   .subscribe();
 
-loadTickets();
 </script>
 
 </body>
