@@ -39,6 +39,11 @@
             <option value="">Caricamento tipi...</option>
         </select>
 
+        <label for="priorita-select">Priorità</label>
+        <select id="priorita-select" required>
+            <option value="">Caricamento priorità...</option>
+        </select>
+
         <label for="stato-select">Stato</label>
         <select id="stato-select" required>
             <option value="">Caricamento stati...</option>
@@ -63,39 +68,41 @@
 
     async function inizializza() {
         try {
-            // Carichiamo TIPI e STATI contemporaneamente
-            const [resStati, resTipi] = await Promise.all([
+            // Carichiamo STATI, TIPI e PRIORITA contemporaneamente
+            const [resStati, resTipi, resPriorita] = await Promise.all([
                 _supabase.from('stato').select('stato'),
-                _supabase.from('tipo').select('tipo')
+                _supabase.from('tipo').select('tipo'),
+                _supabase.from('priorita').select('priorita')
             ]);
 
-            // Gestione Tendina STATO
+            // Popolamento STATO
             const selectStato = document.getElementById('stato-select');
             if (resStati.error) throw resStati.error;
-            if (resStati.data && resStati.data.length > 0) {
-                selectStato.innerHTML = '<option value="">-- Seleziona Stato --</option>' + 
-                    resStati.data.map(item => `<option value="${item.stato}">${item.stato}</option>`).join('');
-            } else {
-                selectStato.innerHTML = '<option value="">Nessun dato in tabella "stato"</option>';
-            }
+            selectStato.innerHTML = resStati.data && resStati.data.length > 0 
+                ? '<option value="">-- Seleziona Stato --</option>' + resStati.data.map(i => `<option value="${i.stato}">${i.stato}</option>`).join('')
+                : '<option value="">Nessun dato in tabella "stato"</option>';
 
-            // Gestione Tendina TIPO
+            // Popolamento TIPO
             const selectTipo = document.getElementById('tipo-select');
             if (resTipi.error) throw resTipi.error;
-            if (resTipi.data && resTipi.data.length > 0) {
-                selectTipo.innerHTML = '<option value="">-- Seleziona Tipo --</option>' + 
-                    resTipi.data.map(item => `<option value="${item.tipo}">${item.tipo}</option>`).join('');
-            } else {
-                selectTipo.innerHTML = '<option value="">Nessun dato in tabella "tipo"</option>';
-            }
+            selectTipo.innerHTML = resTipi.data && resTipi.data.length > 0 
+                ? '<option value="">-- Seleziona Tipo --</option>' + resTipi.data.map(i => `<option value="${i.tipo}">${i.tipo}</option>`).join('')
+                : '<option value="">Nessun dato in tabella "tipo"</option>';
 
-            // Se siamo in modifica, carichiamo il ticket DOPO che le tendine sono piene
+            // Popolamento PRIORITA
+            const selectPriorita = document.getElementById('priorita-select');
+            if (resPriorita.error) throw resPriorita.error;
+            selectPriorita.innerHTML = resPriorita.data && resPriorita.data.length > 0 
+                ? '<option value="">-- Seleziona Priorità --</option>' + resPriorita.data.map(i => `<option value="${i.priorita}">${i.priorita}</option>`).join('')
+                : '<option value="">Nessun dato in tabella "priorita"</option>';
+
+            // Se siamo in modifica, carichiamo i dati del ticket
             if (editId) {
                 await caricaDatiTicket(editId);
             }
         } catch (err) {
             console.error("Errore Inizializzazione:", err);
-            mostraErrore("Errore DB: " + err.message);
+            mostraErrore("Errore caricamento tabelle: " + err.message);
         }
     }
 
@@ -109,6 +116,7 @@
             document.getElementById('descrizione').value = data.descrizione || '';
             document.getElementById('stato-select').value = data.stato || '';
             document.getElementById('tipo-select').value = data.tipo || '';
+            document.getElementById('priorita-select').value = data.priorita || '';
         }
     }
 
@@ -119,7 +127,8 @@
             titolo: document.getElementById('titolo').value,
             descrizione: document.getElementById('descrizione').value,
             stato: document.getElementById('stato-select').value,
-            tipo: document.getElementById('tipo-select').value
+            tipo: document.getElementById('tipo-select').value,
+            priorita: document.getElementById('priorita-select').value
         };
 
         try {
