@@ -70,29 +70,18 @@
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg';
     const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
-    // Funzione robusta per formattare date e timestamp
-    function formattaData(dateStr, includeTime = false) {
+    // Funzione per formattare solo la data (senza ora)
+    function formattaData(dateStr) {
         if (!dateStr) return '-';
         
-        // Prova a creare un oggetto data
         const date = new Date(dateStr);
-        
-        // Se la data non è valida, restituisci il trattino
         if (isNaN(date.getTime())) return '-';
         
         const d = String(date.getDate()).padStart(2, '0');
         const m = String(date.getMonth() + 1).padStart(2, '0');
         const y = date.getFullYear();
         
-        let formatted = `${d}/${m}/${y}`;
-        
-        if (includeTime) {
-            const hh = String(date.getHours()).padStart(2, '0');
-            const mm = String(date.getMinutes()).padStart(2, '0');
-            formatted += ` ${hh}:${mm}`;
-        }
-        
-        return formatted;
+        return `${d}/${m}/${y}`;
     }
 
     async function caricaDati() {
@@ -115,7 +104,7 @@
             tbody.innerHTML = data.map(ticket => {
                 const isBloccante = ticket.bloccante === true || ticket.bloccante === "true" || ticket.bloccante === 1;
                 
-                // Cerchiamo il campo data creazione (Supabase usa di default created_at)
+                // Cerca il campo timestamp creato da Supabase o campi personalizzati
                 const dataInserimentoRaw = ticket.created_at || ticket.inserted_at || ticket.data_inserimento;
 
                 return `
@@ -125,7 +114,7 @@
                         <i class="fas fa-pen-to-square edit-icon" title="Modifica" onclick="location.href='form.html?id=${ticket.id}'"></i>
                         <i class="fas fa-trash delete-trigger" title="Elimina" onclick="eliminaRecord(${ticket.id})"></i>
                     </td>
-                    <td class="date-cell insert-date">${formattaData(dataInserimentoRaw, true)}</td>
+                    <td class="date-cell insert-date">${formattaData(dataInserimentoRaw)}</td>
                     <td><span class="badge">${ticket.stato || 'N.D.'}</span></td>
                     <td><span class="badge badge-tipo">${ticket.tipo || '-'}</span></td>
                     <td><span class="badge badge-priorita">${ticket.priorita || '-'}</span></td>
