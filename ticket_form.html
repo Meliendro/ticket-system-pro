@@ -1,0 +1,86 @@
+<!-- file: ticket_form.html -->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ticket Form</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+body {
+    font-family: 'San Francisco', 'Segoe UI', sans-serif;
+    background: linear-gradient(to bottom,#f5f5f7,#ffffff);
+}
+.form-card {
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 1rem;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    padding: 2rem;
+}
+input, select, textarea {
+    border-radius: 0.5rem;
+    border: 1px solid #d1d5db;
+    padding: 0.5rem;
+    width: 100%;
+}
+label { font-weight: 600; font-size: 0.75rem; color: #374151; display:block; margin-bottom:0.25rem; text-transform: uppercase; }
+</style>
+</head>
+<body class="p-6 flex justify-center">
+<div class="form-card w-full max-w-4xl">
+    <h2 class="text-2xl font-bold mb-4">Dettaglio Ticket</h2>
+    <form id="ticketForm" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label>Stato</label>
+                <select id="stato"></select>
+            </div>
+            <div>
+                <label>Tipo</label>
+                <select id="tipo"></select>
+            </div>
+            <div>
+                <label>Priorità</label>
+                <select id="priorita"></select>
+            </div>
+            <div>
+                <label>Titolo</label>
+                <input type="text" id="titolo">
+            </div>
+            <div class="md:col-span-2">
+                <label>Descrizione</label>
+                <textarea id="descrizione" rows="4"></textarea>
+            </div>
+            <div>
+                <label>Data Inserimento</label>
+                <input type="date" id="dataInserimento">
+            </div>
+        </div>
+        <button type="button" onclick="saveTicket()" class="bg-green-600 px-4 py-2 text-white rounded-xl shadow hover:bg-green-700">Salva</button>
+    </form>
+</div>
+
+<script>
+async function saveTicket() {
+    const t = {
+        stato: document.getElementById('stato').value,
+        tipo: document.getElementById('tipo').value,
+        priorita: document.getElementById('priorita').value,
+        titolo: document.getElementById('titolo').value,
+        descrizione: document.getElementById('descrizione').value,
+        dataInserimento: document.getElementById('dataInserimento').value
+    };
+    // esempio: invio a Supabase
+    await fetch('/api/saveTicket',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(t)
+    });
+    alert('Ticket salvato');
+    window.close();
+}
+</script>
+</body>
+</html>
