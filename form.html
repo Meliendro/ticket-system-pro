@@ -16,8 +16,12 @@
         label { font-weight: bold; display: block; margin-top: 10px; font-size: 0.9rem; }
         input, textarea, select { width: 100%; padding: 10px; margin: 5px 0 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
         
-        .checkbox-group { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
-        .checkbox-group input { width: auto; margin: 0; }
+        /* Stile per la riga bloccante */
+        .bloccante-row { display: flex; align-items: center; gap: 15px; margin-top: 10px; }
+        .bloccante-row select { width: 100px; margin: 0; }
+        #status-label { font-weight: bold; padding: 5px 10px; border-radius: 4px; font-size: 0.85rem; }
+        .is-bloccante { background-color: #e74c3c; color: white; }
+        .not-bloccante { background-color: #bdc3c7; color: #333; }
         
         textarea { height: 80px; resize: vertical; }
         .btn-group { display: flex; gap: 10px; margin-top: 15px; }
@@ -70,9 +74,13 @@
                 <option value="">Caricamento menu...</option>
             </select>
 
-            <div class="checkbox-group">
-                <input type="checkbox" id="bloccante">
-                <label for="bloccante" style="margin:0">Ticket Bloccante</label>
+            <label>Bloccante?</label>
+            <div class="bloccante-row">
+                <select id="bloccante-select" onchange="aggiornaEtichettaBloccante()">
+                    <option value="false">No</option>
+                    <option value="true">Sì</option>
+                </select>
+                <span id="status-label" class="not-bloccante">NON BLOCCANTE</span>
             </div>
         </fieldset>
         
@@ -93,9 +101,21 @@
 
     document.getElementById('titolo-pagina').innerText = editId ? "Modifica Ticket #" + editId : "Nuovo Ticket";
 
+    // Gestione grafica dell'etichetta bloccante
+    function aggiornaEtichettaBloccante() {
+        const select = document.getElementById('bloccante-select');
+        const label = document.getElementById('status-label');
+        if (select.value === "true") {
+            label.innerText = "BLOCCANTE";
+            label.className = "is-bloccante";
+        } else {
+            label.innerText = "NON BLOCCANTE";
+            label.className = "not-bloccante";
+        }
+    }
+
     async function inizializza() {
         try {
-            // Carichiamo tutte le tabelle di riferimento
             const [resStati, resTipi, resPriorita, resAmbiti, resMenu] = await Promise.all([
                 _supabase.from('stato').select('stato'),
                 _supabase.from('tipo').select('tipo'),
@@ -146,13 +166,21 @@
             document.getElementById('priorita-select').value = data.priorita || '';
             document.getElementById('ambito-select').value = data.ambito || '';
             document.getElementById('menu-select').value = data.menu || '';
-            document.getElementById('bloccante').checked = data.bloccante || false;
+            
+            // Gestione booleano per la tendina bloccante
+            const isBloccante = data.bloccante === true || data.bloccante === "true";
+            document.getElementById('bloccante-select').value = isBloccante.toString();
+            aggiornaEtichettaBloccante();
         }
     }
 
     document.getElementById('form-ticket').addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = document.getElementById('ticket-id').value;
+        
+        // Convertiamo la stringa della select in un vero valore booleano
+        const bloccanteValue = document.getElementById('bloccante-select').value === "true";
+
         const payload = {
             titolo: document.getElementById('titolo').value,
             descrizione: document.getElementById('descrizione').value,
@@ -161,7 +189,7 @@
             priorita: document.getElementById('priorita-select').value,
             ambito: document.getElementById('ambito-select').value,
             menu: document.getElementById('menu-select').value,
-            bloccante: document.getElementById('bloccante').checked
+            bloccante: bloccanteValue
         };
 
         try {
