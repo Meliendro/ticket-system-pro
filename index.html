@@ -67,7 +67,7 @@
                 tbody.innerHTML = data.map(ticket => `
                     <tr>
                         <td>${ticket.id}</td>
-                        <td><strong>${ticket.nome || 'N/A'}</strong></td>
+                        <td><strong>${ticket.titolo || 'N/A'}</strong></td>
                         <td>${ticket.descrizione || ''}</td>
                         <td>
                             <button class="btn btn-edit" onclick="location.href='form.html?id=${ticket.id}'">Modifica</button>
