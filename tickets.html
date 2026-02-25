@@ -77,11 +77,11 @@ button:hover {
 
 <script>
 let tickets = []; // Caricati da Supabase
-async function loadTickets() {
+<!-- async function loadTickets() {
     // esempio fetch Supabase
     tickets = await fetch('/api/getTickets').then(r=>r.json());
     renderTable();
-}
+} -->
 
 function renderTable() {
     const tbody = document.getElementById('ticketBody');
@@ -111,6 +111,26 @@ function editTicket(index) {
     window.open('ticket_form.html','_blank','width=800,height=900');
 }
 
+async function saveTicket() {
+    const t = {
+        stato: document.getElementById('stato').value,
+        tipo: document.getElementById('tipo').value,
+        priorita: document.getElementById('priorita').value,
+        titolo: document.getElementById('titolo').value,
+        descrizione: document.getElementById('descrizione').value,
+        dataInserimento: document.getElementById('dataInserimento').value
+    };
+
+    const { data, error } = await supabase
+        .from('tickets')
+        .insert([t]);
+
+    if (error) { alert("Errore: " + error.message); return; }
+
+    alert('Ticket salvato!');
+    window.close();
+}
+    
 async function loadTickets() {
     let { data: ticketsData, error } = await supabase
         .from('tickets')
