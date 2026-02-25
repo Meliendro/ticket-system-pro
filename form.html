@@ -9,20 +9,20 @@
         body { font-family: 'Segoe UI', sans-serif; padding: 30px; background-color: #f4f7f6; }
         .container { max-width: 500px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: auto; }
         h2 { color: #333; margin-top: 0; }
-        label { font-weight: bold; display: block; margin-top: 10px; }
-        input, textarea, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+        label { font-weight: bold; display: block; margin-top: 15px; }
+        input, textarea, select { width: 100%; padding: 10px; margin: 5px 0 15px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
         textarea { height: 100px; resize: vertical; }
         .btn-group { display: flex; gap: 10px; margin-top: 15px; }
         button { flex: 1; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn-save { background-color: #27ae60; color: white; }
         .btn-cancel { background-color: #95a5a6; color: white; }
-        #messaggio { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
+        #messaggio { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; border: 1px solid #721c24; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 id="titolo-pagina">Nuovo Ticket</h2>
+    <h2 id="titolo-pagina">Caricamento...</h2>
     <div id="messaggio"></div>
 
     <form id="form-ticket">
@@ -34,8 +34,8 @@
         <label for="descrizione">Descrizione</label>
         <textarea id="descrizione" placeholder="Dettagli del problema..."></textarea>
         
-        <label for="stato">Stato</label>
-        <select id="stato" required>
+        <label for="stato-select">Stato</label>
+        <select id="stato-select" required>
             <option value="">Caricamento stati...</option>
         </select>
         
@@ -54,32 +54,42 @@
     const urlParams = new URLSearchParams(window.location.search);
     const editId = urlParams.get('id');
 
-    // Funzione per caricare gli stati dalla tabella "stato"
-    async function caricaStati() {
-        const { data, error } = await _supabase
-            .from('stato') // Legge dalla tabella stato
-            .select('*');
+    document.getElementById('titolo-pagina').innerText = editId ? "Modifica Ticket #" + editId : "Nuovo Ticket";
 
-        const selectStato = document.getElementById('stato');
-        
-        if (error) {
-            console.error("Errore caricamento stati:", error);
-            selectStato.innerHTML = '<option value="">Errore caricamento</option>';
-            return;
-        }
+    async function inizializza() {
+        const selectElement = document.getElementById('stato-select');
 
-        // Popola la tendina. Assumo che la colonna si chiami 'nome' o 'valore'
-        // Se la colonna ha un altro nome (es. 'descrizione'), cambialo qui sotto
-        selectStato.innerHTML = '<option value="">-- Seleziona Stato --</option>' + 
-            data.map(s => `<option value="${s.nome}">${s.nome}</option>`).join('');
+        try {
+            // Leggiamo la tabella 'stato' e la colonna 'stato'
+            const { data: records, error: errStati } = await _supabase
+                .from('stato')
+                .select('stato');
 
-        // Se siamo in modifica, dopo aver caricato gli stati, selezioniamo quello giusto
-        if (editId) {
-            caricaDatiEsistenti(editId);
+            if (errStati) throw errStati;
+
+            if (records && records.length > 0) {
+                selectElement.innerHTML = '<option value="">-- Seleziona Stato --</option>';
+                records.forEach(item => {
+                    const option = document.createElement('option');
+                    // item.stato è il valore della colonna 'stato'
+                    option.value = item.stato; 
+                    option.textContent = item.stato;
+                    selectElement.appendChild(option);
+                });
+            } else {
+                selectElement.innerHTML = '<option value="">Nessuno stato in tabella</option>';
+            }
+
+            // Dopo aver caricato la lista, se siamo in modifica, carichiamo il ticket
+            if (editId) {
+                await caricaDatiTicket(editId);
+            }
+        } catch (err) {
+            mostraErrore("Errore inizializzazione: " + err.message);
         }
     }
 
-    async function caricaDatiEsistenti(id) {
+    async function caricaDatiTicket(id) {
         const { data, error } = await _supabase
             .from('tickets')
             .select('*')
@@ -87,13 +97,12 @@
             .single();
 
         if (error) {
-            mostraErrore("Errore nel caricamento: " + error.message);
+            mostraErrore("Errore caricamento ticket: " + error.message);
         } else if (data) {
             document.getElementById('ticket-id').value = data.id;
             document.getElementById('titolo').value = data.titolo || '';
             document.getElementById('descrizione').value = data.descrizione || '';
-            // Imposta il valore della select
-            document.getElementById('stato').value = data.stato || '';
+            document.getElementById('stato-select').value = data.stato || '';
         }
     }
 
@@ -101,25 +110,21 @@
         e.preventDefault();
         
         const id = document.getElementById('ticket-id').value;
-        const titolo = document.getElementById('titolo').value;
-        const descrizione = document.getElementById('descrizione').value;
-        const stato = document.getElementById('stato').value;
-
-        const payload = { titolo, descrizione, stato };
-        let risultato;
+        const payload = {
+            titolo: document.getElementById('titolo').value,
+            descrizione: document.getElementById('descrizione').value,
+            stato: document.getElementById('stato-select').value
+        };
 
         try {
-            if (id) {
-                risultato = await _supabase.from('tickets').update(payload).eq('id', id);
-            } else {
-                risultato = await _supabase.from('tickets').insert([payload]);
-            }
+            let res = id ? 
+                await _supabase.from('tickets').update(payload).eq('id', id) : 
+                await _supabase.from('tickets').insert([payload]);
 
-            if (risultato.error) throw risultato.error;
+            if (res.error) throw res.error;
             location.href = 'index.html';
-
         } catch (err) {
-            mostraErrore("Errore nel salvataggio: " + err.message);
+            mostraErrore("Errore salvataggio: " + err.message);
         }
     });
 
@@ -131,9 +136,7 @@
         box.innerText = testo;
     }
 
-    // Avvio: prima carichiamo gli stati
-    caricaStati();
+    inizializza();
 </script>
-
 </body>
 </html>
