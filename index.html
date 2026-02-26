@@ -3,17 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestione Tickets - Lista</title>
+    <title>Gestione Tickets - Lista Completa</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; line-height: 1.6; background-color: #f8f9fa; }
-        .container { max-width: 1650px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .container { max-width: 1800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         h1 { color: #2c3e50; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: left; font-size: 0.85rem; }
-        th { background-color: #f4f4f4; color: #333; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; }
         
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+        th, td { border-bottom: 1px solid #eee; padding: 10px 8px; text-align: left; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        th { background-color: #f4f4f4; color: #333; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px; }
+        
+        /* Larghezze specifiche per colonne critiche */
+        .col-id { width: 60px; }
+        .col-date { width: 90px; }
+        .col-badge { width: 100px; }
+        .col-text { width: 150px; } /* Titolo e descrizioni */
+
         /* Riga cliccabile */
         tr.clickable-row { cursor: pointer; transition: background-color 0.2s; }
         tr.clickable-row:hover { background-color: #f1f7ff !important; }
@@ -22,19 +29,17 @@
         .btn-add { background-color: #2ecc71; color: white; margin-bottom: 20px; }
         .btn-add:hover { background-color: #27ae60; }
         
-        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; background: #dfe6e9; color: #636e72; white-space: nowrap; }
+        .badge { padding: 3px 7px; border-radius: 10px; font-size: 0.65rem; font-weight: bold; background: #dfe6e9; color: #636e72; display: inline-block; }
         .badge-tipo { background: #e8f4fd; color: #3498db; border: 1px solid #3498db; }
         .badge-priorita { background: #fff3e0; color: #e67e22; border: 1px solid #e67e22; }
         .badge-bloccante { background: #ffebee; color: #c0392b; border: 1px solid #c0392b; }
         .badge-no { background: #f1f2f6; color: #747d8c; border: 1px solid #a4b0be; }
         
-        .date-cell { font-family: monospace; font-size: 0.8rem; color: #555; white-space: nowrap; }
-        .incarico-cell { font-weight: 600; color: #2c3e50; }
-        .insert-date { color: #2980b9; font-weight: bold; }
+        .date-cell { font-family: monospace; font-size: 0.75rem; color: #555; }
+        .truncate { max-width: 100%; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .truncate:hover { white-space: normal; overflow: visible; position: relative; background: white; z-index: 10; border: 1px solid #ddd; padding: 2px; }
 
-        .edit-icon { color: #3498db; cursor: pointer; margin-left: 8px; font-size: 0.9rem; }
-        .edit-icon:hover { color: #2980b9; }
-        .delete-trigger { color: #bdc3c7; cursor: pointer; margin-left: 8px; font-size: 0.8rem; }
+        .delete-trigger { color: #bdc3c7; cursor: pointer; margin-left: 5px; font-size: 0.75rem; }
         .delete-trigger:hover { color: #e74c3c; }
     </style>
 </head>
@@ -49,21 +54,26 @@
     <table>
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Inserito il</th>
-                <th>Stato</th>
-                <th>Tipo</th>
-                <th>Priorità</th>
-                <th>Incarico</th>
-                <th>Inizio Prev.</th>
-                <th>Fine Prev.</th>
-                <th>Rilascio</th>
-                <th>Bloccante</th>
-                <th>Titolo</th>
+                <th class="col-id">N. Ticket</th>
+                <th class="col-badge">Stato</th>
+                <th class="col-badge">Tipo</th>
+                <th class="col-badge">Bloccante</th>
+                <th class="col-badge">Priorità</th>
+                <th class="col-date">Ins. il</th>
+                <th>Ambito</th>
+                <th>Menu</th>
+                <th class="col-text">Titolo</th>
+                <th class="col-text">Descrizione</th>
+                <th>Inserito da</th>
+                <th>In carico a</th>
+                <th class="col-date">Inizio Prev.</th>
+                <th class="col-date">Fine Prev.</th>
+                <th class="col-date">Rilascio</th>
+                <th class="col-text">Descrizione Attività</th>
             </tr>
         </thead>
         <tbody id="lista-body">
-            <tr><td colspan="11">Caricamento in corso...</td></tr>
+            <tr><td colspan="16">Caricamento in corso...</td></tr>
         </tbody>
     </table>
 </div>
@@ -96,13 +106,13 @@
             if (error) throw error;
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="11">Nessun ticket trovato.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="16">Nessun ticket trovato.</td></tr>';
                 return;
             }
 
             tbody.innerHTML = data.map(ticket => {
                 const isBloccante = ticket.bloccante === true || ticket.bloccante === "true" || ticket.bloccante === 1;
-                const dataInserimentoRaw = ticket.created_at || ticket.inserted_at || ticket.data_inserimento;
+                const dataInserimentoRaw = ticket.created_at || ticket.inserted_at;
 
                 return `
                 <tr class="clickable-row" onclick="location.href='form.html?id=${ticket.id}'">
@@ -111,20 +121,25 @@
                         <i class="fas fa-trash delete-trigger" title="Elimina" 
                            onclick="event.stopPropagation(); eliminaRecord(${ticket.id})"></i>
                     </td>
-                    <td class="date-cell insert-date">${formattaData(dataInserimentoRaw)}</td>
                     <td><span class="badge">${ticket.stato || 'N.D.'}</span></td>
                     <td><span class="badge badge-tipo">${ticket.tipo || '-'}</span></td>
-                    <td><span class="badge badge-priorita">${ticket.priorita || '-'}</span></td>
-                    <td class="incarico-cell">${ticket.incarico || '-'}</td>
-                    <td class="date-cell">${formattaData(ticket.inizioprevisto)}</td>
-                    <td class="date-cell">${formattaData(ticket.fineprevista)}</td>
-                    <td class="date-cell">${formattaData(ticket.datarilascio)}</td>
                     <td>
                         <span class="badge ${isBloccante ? 'badge-bloccante' : 'badge-no'}">
                             ${isBloccante ? 'SÌ' : 'NO'}
                         </span>
                     </td>
-                    <td><strong>${ticket.titolo || 'Senza titolo'}</strong></td>
+                    <td><span class="badge badge-priorita">${ticket.priorita || '-'}</span></td>
+                    <td class="date-cell">${formattaData(dataInserimentoRaw)}</td>
+                    <td>${ticket.ambito || '-'}</td>
+                    <td>${ticket.menu || '-'}</td>
+                    <td><span class="truncate" title="${ticket.titolo || ''}"><strong>${ticket.titolo || 'Senza titolo'}</strong></span></td>
+                    <td><span class="truncate" title="${ticket.descrizione || ''}">${ticket.descrizione || '-'}</span></td>
+                    <td>${ticket.inserito_da || 'Sistema'}</td>
+                    <td><strong>${ticket.incarico || '-'}</strong></td>
+                    <td class="date-cell">${formattaData(ticket.inizioprevisto)}</td>
+                    <td class="date-cell">${formattaData(ticket.fineprevista)}</td>
+                    <td class="date-cell">${formattaData(ticket.datarilascio)}</td>
+                    <td><span class="truncate" title="${ticket.descrizione_attivita || ''}">${ticket.descrizione_attivita || '-'}</span></td>
                 </tr>
                 `;
             }).join('');
@@ -132,7 +147,7 @@
         } catch (err) {
             console.error("Errore:", err);
             statusMsg.innerHTML = `<p style="color:red"><b>Errore:</b> ${err.message}</p>`;
-            tbody.innerHTML = '<tr><td colspan="11" style="color:red">Errore nel caricamento.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="16" style="color:red">Errore nel caricamento.</td></tr>';
         }
     }
 
