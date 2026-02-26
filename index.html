@@ -46,7 +46,6 @@
         h1 { font-weight: 800; font-size: 1.8rem; margin: 0; display: flex; align-items: center; gap: 12px; }
         h1 i { color: var(--accent); }
 
-        /* KPI STATS SECTION */
         .stats-bar {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -113,7 +112,7 @@
             border: 1px solid #eef2f7;
         }
 
-        table { width: 100%; border-collapse: collapse; min-width: 2200px; }
+        table { width: 100%; border-collapse: collapse; min-width: 3500px; } /* Aumentata larghezza per nuove colonne */
         th { 
             background-color: #f8fafc; 
             color: #475569; 
@@ -150,6 +149,8 @@
         .prio-alta { border-left: 5px solid var(--danger) !important; }
         .prio-media { border-left: 5px solid var(--warning) !important; }
         .prio-bassa { border-left: 5px solid var(--success) !important; }
+
+        .deadline-col { background-color: #fefce8; color: #854d0e; font-weight: 600; font-size: 0.8rem; }
 
         tr:hover td { background-color: #f8fbff; }
         .truncate { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
@@ -212,10 +213,18 @@
                     <th>Fine</th>
                     <th>Rilascio</th>
                     <th>Note</th>
+                    <th class="deadline-col">Sca. Nuovo</th>
+                    <th class="deadline-col">Sca. Lavorazione</th>
+                    <th class="deadline-col">Sca. Risolto</th>
+                    <th class="deadline-col">Sca. Verificato</th>
+                    <th class="deadline-col">Sca. Accettato</th>
+                    <th class="deadline-col">Sca. Chiuso</th>
+                    <th class="deadline-col">Sca. Rifiutato</th>
+                    <th class="deadline-col">Sca. Attesa</th>
                 </tr>
             </thead>
             <tbody id="lista-body">
-                <tr><td colspan="16" style="text-align:center; padding: 50px;"><i class="fas fa-spinner fa-spin"></i> Caricamento...</td></tr>
+                <tr><td colspan="24" style="text-align:center; padding: 50px;"><i class="fas fa-spinner fa-spin"></i> Caricamento...</td></tr>
             </tbody>
         </table>
     </div>
@@ -328,6 +337,14 @@
                 <td>${formattaData(t.fineprevista)}</td>
                 <td>${formattaData(t.datarilascio)}</td>
                 <td><span class="truncate">${t.descrizione_attivita || '-'}</span></td>
+                <td class="deadline-col">${formattaData(t.datanuovos)}</td>
+                <td class="deadline-col">${formattaData(t.datainlavoraziones)}</td>
+                <td class="deadline-col">${formattaData(t.datarisoltos)}</td>
+                <td class="deadline-col">${formattaData(t.dataverificatos)}</td>
+                <td class="deadline-col">${formattaData(t.dataaccettatos)}</td>
+                <td class="deadline-col">${formattaData(t.datachiusos)}</td>
+                <td class="deadline-col">${formattaData(t.datarifiutatos)}</td>
+                <td class="deadline-col">${formattaData(t.datainattesas)}</td>
             </tr>`;
         }).join('');
     }
