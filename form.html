@@ -216,11 +216,11 @@
     }
 
     function gestisciCambioStato() {
-        const valSelt = document.getElementById('stato-select').value.toUpperCase();
+        const valSelt = document.getElementById('stato-select').value.toUpperCase().trim();
         const oggi = new Date();
         const oggiStr = oggi.toLocaleDateString('sv-SE'); 
 
-        const statoTrovato = listaStatiGlobal.find(s => s.stato.toUpperCase() === valSelt);
+        const statoTrovato = listaStatiGlobal.find(s => s.stato.toUpperCase().trim() === valSelt);
         const box = document.getElementById('descrizione-stato-box');
         
         if (statoTrovato) {
@@ -229,7 +229,7 @@
 
             let idCampoBase = "";
 
-            // Logica di abbinamento basata sui requisiti
+            // Ricerca flessibile per parole chiave per evitare problemi con slash o spazi
             if (valSelt.includes("NUOVO") || valSelt.includes("APERTO")) {
                 idCampoBase = "datanuovo";
             } else if (valSelt.includes("LAVORAZIONE") || valSelt.includes("CORSO")) {
@@ -242,7 +242,7 @@
                 idCampoBase = "dataaccettato";
             } else if (valSelt.includes("CHIUSO")) {
                 idCampoBase = "datachiuso";
-            } else if (valSelt.includes("RIFIUTATO") || valSelt.includes("NON ACCETTATO") || valSelt.includes("RIFIUT")) {
+            } else if (valSelt.includes("RIFIUTATO") || (valSelt.includes("NON") && valSelt.includes("ACCETTATO"))) {
                 idCampoBase = "datarifiutato";
             } else if (valSelt.includes("ATTESA") || valSelt.includes("SOSPESO")) {
                 idCampoBase = "datainattesa";
@@ -252,7 +252,7 @@
                 const inputData = document.getElementById(idCampoBase);
                 const inputScadenza = document.getElementById(idCampoBase + 's');
                 
-                // Inizializza i campi solo se la data base è vuota
+                // Aggiorna solo se la data base è vuota (per evitare sovrascritture accidentali)
                 if (!inputData.value) {
                     inputData.value = oggiStr;
                     
