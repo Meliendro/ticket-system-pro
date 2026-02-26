@@ -36,7 +36,6 @@
         .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; }
         .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
         
-        /* Stile per le coppie di date workflow */
         .workflow-item { display: flex; flex-direction: column; gap: 5px; background: #fff; padding: 8px; border-radius: 8px; border: 1px solid #eee; }
         .workflow-item label.scadenza-label { color: var(--danger); }
 
@@ -56,7 +55,6 @@
 
         .full-width { margin-bottom: 20px; }
         textarea { height: 100px; resize: vertical; }
-        
         #logtecnico { font-family: 'Courier New', monospace; font-size: 13px; background-color: #fcfcfc; color: #555; }
 
         .footer-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px; }
@@ -87,14 +85,8 @@
                     Seleziona uno stato...
                 </div>
             </div>
-            <div>
-                <label>Priorità</label>
-                <select id="priorita-select" required></select>
-            </div>
-            <div>
-                <label>Tipo</label>
-                <select id="tipo-select" required></select>
-            </div>
+            <div><label>Priorità</label><select id="priorita-select" required></select></div>
+            <div><label>Tipo</label><select id="tipo-select" required></select></div>
         </div>
 
         <div class="grid-3">
@@ -166,7 +158,7 @@
 
         <div class="full-width">
             <label>Log Tecnico (Storico modifiche)</label>
-            <textarea id="logtecnico" placeholder="Lo storico verrà aggiornato automaticamente..." readonly></textarea>
+            <textarea id="logtecnico" placeholder="Storico automatico..." readonly></textarea>
         </div>
 
         <div class="footer-actions">
@@ -184,6 +176,8 @@
     const urlParams = new URLSearchParams(window.location.search);
     const editId = urlParams.get('id');
     let listaStatiGlobal = [];
+
+    const workflowFields = ['datanuovo', 'datainlavorazione', 'datarisolto', 'dataverificato', 'dataaccettato', 'datachiuso', 'datarifiutato', 'datainattesa'];
 
     async function inizializza() {
         try {
@@ -209,9 +203,6 @@
             } else {
                 document.getElementById('titolo-header').innerText = "Nuovo Ticket";
                 document.getElementById('tkn-id').innerText = "NEW";
-                // Inizializza data nuovo per ticket nuovi
-                const dt = new Date().toLocaleDateString('sv-SE');
-                document.getElementById('datanuovo').value = dt;
             }
         } catch (err) { console.error(err); }
     }
@@ -219,42 +210,35 @@
     function popolaSelect(id, response, column, placeholder) {
         const select = document.getElementById(id);
         if (response.data) {
-            let options = `<option value="" selected disabled>-- ${placeholder} --</option>`;
-            options += response.data.map(i => `<option value="${i[column]}">${i[column]}</option>`).join('');
-            select.innerHTML = options;
+            select.innerHTML = `<option value="" selected disabled>-- ${placeholder} --</option>` + 
+                response.data.map(i => `<option value="${i[column]}">${i[column]}</option>`).join('');
         }
     }
 
     function gestisciCambioStato() {
-        const val = document.getElementById('stato-select').value;
+        const valSelt = document.getElementById('stato-select').value;
         const oggi = new Date();
-        const oggiStr = oggi.toLocaleDateString('sv-SE'); // Formato YYYY-MM-DD
+        const oggiStr = oggi.toLocaleDateString('sv-SE'); 
 
+        const statoTrovato = listaStatiGlobal.find(s => s.stato.toUpperCase() === valSelt.toUpperCase());
         const box = document.getElementById('descrizione-stato-box');
-        const statoTrovato = listaStatiGlobal.find(s => s.stato === val);
         
         if (statoTrovato) {
-            const desc = statoTrovato.descrizione || "Nessuna descrizione";
             const giorni = parseInt(statoTrovato.gg) || 0;
-            box.innerHTML = `<strong>Dettaglio:</strong> ${desc}<br><strong>Tempo limite previsto:</strong> ${giorni} gg`;
+            box.innerHTML = `<strong>Dettaglio:</strong> ${statoTrovato.descrizione || '...'}<br><strong>Tempo limite:</strong> ${giorni} gg`;
 
             const mappaStati = {
-                'NUOVO': 'datanuovo',
-                'IN LAVORAZIONE': 'datainlavorazione',
-                'RISOLTO': 'datarisolto',
-                'VERIFICATO': 'dataverificato',
-                'ACCETTATO': 'dataaccettato',
-                'CHIUSO': 'datachiuso',
-                'RIFIUTATO': 'datarifiutato',
-                'IN ATTESA': 'datainattesa'
+                'NUOVO': 'datanuovo', 'IN LAVORAZIONE': 'datainlavorazione', 'RISOLTO': 'datarisolto', 
+                'VERIFICATO': 'dataverificato', 'ACCETTATO': 'dataaccettato', 'CHIUSO': 'datachiuso', 
+                'RIFIUTATO': 'datarifiutato', 'IN ATTESA': 'datainattesa'
             };
 
-            const idCampoBase = mappaStati[val.toUpperCase()];
+            const idCampoBase = mappaStati[valSelt.toUpperCase()];
             if (idCampoBase) {
                 const inputData = document.getElementById(idCampoBase);
                 const inputScadenza = document.getElementById(idCampoBase + 's');
                 
-                // Se non c'è già una data, imposta oggi e calcola scadenza
+                // Aggiorna data base e calcola scadenza solo se il campo data base è vuoto
                 if (!inputData.value) {
                     inputData.value = oggiStr;
                     
@@ -284,22 +268,15 @@
             document.getElementById('datarilascio').value = data.datarilascio || '';
             document.getElementById('logtecnico').value = data.logtecnico || '';
             
-            // Carica tutte le date workflow (base e con s)
-            const workflowFields = [
-                'datanuovo', 'datainlavorazione', 'datarisolto', 'dataverificato', 
-                'dataaccettato', 'datachiuso', 'datarifiutato', 'datainattesa'
-            ];
-            
-            workflowFields.forEach(field => {
-                document.getElementById(field).value = data[field] || '';
-                document.getElementById(field + 's').value = data[field + 's'] || '';
+            workflowFields.forEach(f => {
+                document.getElementById(f).value = data[f] || '';
+                document.getElementById(f + 's').value = data[f + 's'] || '';
             });
 
-            // Aggiorna l'info box
-            const statoSelt = listaStatiGlobal.find(s => s.stato === data.stato);
-            if(statoSelt) {
+            const stFound = listaStatiGlobal.find(s => s.stato === data.stato);
+            if(stFound) {
                 document.getElementById('descrizione-stato-box').innerHTML = 
-                `<strong>Dettaglio:</strong> ${statoSelt.descrizione || '...'}<br><strong>Tempo limite:</strong> ${statoSelt.gg || 0} gg`;
+                `<strong>Dettaglio:</strong> ${stFound.descrizione || '...'}<br><strong>Tempo limite:</strong> ${stFound.gg || 0} gg`;
             }
         }
     }
@@ -309,7 +286,7 @@
         const id = document.getElementById('ticket-id').value;
         const oraAttuale = new Date().toLocaleString('it-IT');
         let logAttuale = document.getElementById('logtecnico').value;
-        const nuovaNota = `[${oraAttuale}] Stato aggiornato a: ${document.getElementById('stato-select').value}\n`;
+        const nuovaNota = `[${oraAttuale}] Stato: ${document.getElementById('stato-select').value}\n`;
         logAttuale = nuovaNota + (logAttuale || "");
 
         const payload = {
@@ -325,29 +302,17 @@
             inizioprevisto: document.getElementById('inizioprevisto').value || null,
             fineprevista: document.getElementById('fineprevista').value || null,
             datarilascio: document.getElementById('datarilascio').value || null,
-            logtecnico: logAttuale,
-            // Date Workflow
-            datanuovo: document.getElementById('datanuovo').value || null,
-            datanuovos: document.getElementById('datanuovos').value || null,
-            datainlavorazione: document.getElementById('datainlavorazione').value || null,
-            datainlavoraziones: document.getElementById('datainlavoraziones').value || null,
-            datarisolto: document.getElementById('datarisolto').value || null,
-            datarisoltos: document.getElementById('datarisoltos').value || null,
-            dataverificato: document.getElementById('dataverificato').value || null,
-            dataverificatos: document.getElementById('dataverificatos').value || null,
-            dataaccettato: document.getElementById('dataaccettato').value || null,
-            dataaccettatos: document.getElementById('dataaccettatos').value || null,
-            datachiuso: document.getElementById('datachiuso').value || null,
-            datachiusos: document.getElementById('datachiusos').value || null,
-            datarifiutato: document.getElementById('datarifiutato').value || null,
-            datarifiutatos: document.getElementById('datarifiutatos').value || null,
-            datainattesa: document.getElementById('datainattesa').value || null,
-            datainattesas: document.getElementById('datainattesas').value || null
+            logtecnico: logAttuale
         };
+
+        workflowFields.forEach(f => {
+            payload[f] = document.getElementById(f).value || null;
+            payload[f + 's'] = document.getElementById(f + 's').value || null;
+        });
 
         const res = id ? await _supabase.from('tickets').update(payload).eq('id', id) : await _supabase.from('tickets').insert([payload]);
         if (!res.error) location.href = 'index.html';
-        else alert("Errore durante il salvataggio: " + res.error.message);
+        else alert("Errore: " + res.error.message);
     });
 
     inizializza();
