@@ -58,7 +58,6 @@
         }
         .btn-add:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(39, 174, 96, 0.3); }
 
-        /* Contenitore Tabella Evoluto */
         .table-wrapper {
             overflow-x: auto;
             border-radius: 12px;
@@ -70,21 +69,37 @@
             width: 100%; 
             border-collapse: separate; 
             border-spacing: 0;
-            min-width: 2000px; /* Spazio generoso per la visibilità */
+            min-width: 2200px; 
         }
 
         th { 
             background-color: #f8fafc; 
             color: #64748b; 
             text-transform: uppercase; 
-            font-size: 0.75rem; 
+            font-size: 0.7rem; 
             font-weight: 700;
-            letter-spacing: 1px;
-            padding: 18px 15px;
+            letter-spacing: 0.5px;
+            padding: 12px 10px;
             border-bottom: 2px solid #edf2f7;
             position: sticky;
             top: 0;
             z-index: 10;
+            text-align: left;
+        }
+
+        /* Stile per i filtri nelle colonne */
+        .filter-select {
+            display: block;
+            width: 100%;
+            margin-top: 8px;
+            padding: 4px;
+            font-size: 0.75rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background-color: white;
+            color: #334155;
+            font-weight: normal;
+            text-transform: none;
         }
 
         td { 
@@ -95,7 +110,6 @@
             vertical-align: middle;
         }
 
-        /* Colonna ID Sticky (fissa a sinistra) */
         .sticky-col {
             position: sticky;
             left: 0;
@@ -106,11 +120,11 @@
             color: var(--accent);
             width: 110px;
         }
+        th.sticky-col { background-color: #f8fafc; }
 
         tr:hover td { background-color: #f8fbff !important; }
         tr.clickable-row { cursor: pointer; }
 
-        /* Badge stilizzati e larghi quanto serve */
         .badge { 
             padding: 6px 12px; 
             border-radius: 6px; 
@@ -167,12 +181,39 @@
             <thead>
                 <tr>
                     <th class="sticky-col">ID Ticket</th>
-                    <th>Stato Attuale</th>
-                    <th>Tipologia</th>
-                    <th>Bloccante</th>
-                    <th>Priorità</th>
+                    <th>
+                        Stato Attuale
+                        <select id="filter-stato" class="filter-select" onchange="applicaFiltri()">
+                            <option value="">Tutti</option>
+                        </select>
+                    </th>
+                    <th>
+                        Tipologia
+                        <select id="filter-tipo" class="filter-select" onchange="applicaFiltri()">
+                            <option value="">Tutte</option>
+                        </select>
+                    </th>
+                    <th>
+                        Bloccante
+                        <select id="filter-bloccante" class="filter-select" onchange="applicaFiltri()">
+                            <option value="">Tutti</option>
+                            <option value="SÌ">SÌ</option>
+                            <option value="NO">NO</option>
+                        </select>
+                    </th>
+                    <th>
+                        Priorità
+                        <select id="filter-priorita" class="filter-select" onchange="applicaFiltri()">
+                            <option value="">Tutte</option>
+                        </select>
+                    </th>
                     <th>Data Inserimento</th>
-                    <th>Ambito Applicativo</th>
+                    <th>
+                        Ambito Applicativo
+                        <select id="filter-ambito" class="filter-select" onchange="applicaFiltri()">
+                            <option value="">Tutti</option>
+                        </select>
+                    </th>
                     <th>Menu di Riferimento</th>
                     <th>Titolo dell'Attività</th>
                     <th>Descrizione Dettagliata</th>
@@ -198,6 +239,8 @@
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg';
     const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
+    let datiGlobali = []; // Per gestire i filtri localmente dopo il caricamento
+
     function formattaData(dateStr) {
         if (!dateStr) return '-';
         const date = new Date(dateStr);
@@ -205,8 +248,89 @@
         return date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
     }
 
-    async function caricaDati() {
+    // Funzione per popolare i menu a tendina dei filtri in base ai dati unici presenti
+    function popolaFiltri(data) {
+        const stati = [...new Set(data.map(t => t.stato))].filter(Boolean).sort();
+        const tipi = [...new Set(data.map(t => t.tipo))].filter(Boolean).sort();
+        const priorita = [...new Set(data.map(t => t.priorita))].filter(Boolean).sort();
+        const ambiti = [...new Set(data.map(t => t.ambito))].filter(Boolean).sort();
+
+        fillSelect('filter-stato', stati);
+        fillSelect('filter-tipo', tipi);
+        fillSelect('filter-priorita', priorita);
+        fillSelect('filter-ambito', ambiti);
+    }
+
+    function fillSelect(id, items) {
+        const select = document.getElementById(id);
+        const currentVal = select.value;
+        select.innerHTML = `<option value="">Tutti</option>` + items.map(i => `<option value="${i}">${i}</option>`).join('');
+        select.value = currentVal;
+    }
+
+    function applicaFiltri() {
+        const fStato = document.getElementById('filter-stato').value;
+        const fTipo = document.getElementById('filter-tipo').value;
+        const fBloccante = document.getElementById('filter-bloccante').value;
+        const fPriorita = document.getElementById('filter-priorita').value;
+        const fAmbito = document.getElementById('filter-ambito').value;
+
+        const datiFiltrati = datiGlobali.filter(t => {
+            const isBloccante = t.bloccante === true || t.bloccante === "true" || t.bloccante === 1 ? 'SÌ' : 'NO';
+            
+            return (fStato === "" || t.stato === fStato) &&
+                   (fTipo === "" || t.tipo === fTipo) &&
+                   (fBloccante === "" || isBloccante === fBloccante) &&
+                   (fPriorita === "" || t.priorita === fPriorita) &&
+                   (fAmbito === "" || t.ambito === fAmbito);
+        });
+
+        renderizzaTabella(datiFiltrati);
+    }
+
+    function renderizzaTabella(data) {
         const tbody = document.getElementById('lista-body');
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="16" style="text-align:center; padding: 40px;">Nessun record corrispondente ai filtri.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.map(ticket => {
+            const isBloccante = ticket.bloccante === true || ticket.bloccante === "true" || ticket.bloccante === 1;
+            const dataInserimentoRaw = ticket.created_at || ticket.inserted_at;
+
+            return `
+            <tr class="clickable-row" onclick="location.href='form.html?id=${ticket.id}'">
+                <td class="sticky-col">
+                    #${ticket.id}
+                    <i class="fas fa-trash-can delete-btn" title="Elimina definitivamente" 
+                       onclick="event.stopPropagation(); eliminaRecord(${ticket.id})"></i>
+                </td>
+                <td><span class="badge badge-stato">${ticket.stato || 'APERT'}</span></td>
+                <td><span class="badge badge-tipo">${ticket.tipo || '-'}</span></td>
+                <td>
+                    <span class="badge ${isBloccante ? 'badge-bloccante' : 'badge-no'}">
+                        ${isBloccante ? '<i class="fa-solid fa-bolt"></i> SÌ' : 'NO'}
+                    </span>
+                </td>
+                <td><span class="badge badge-priorita">${ticket.priorita || '-'}</span></td>
+                <td><span class="date-cell">${formattaData(dataInserimentoRaw)}</span></td>
+                <td>${ticket.ambito || '-'}</td>
+                <td>${ticket.menu || '-'}</td>
+                <td title="${ticket.titolo || ''}"><span class="truncate"><strong>${ticket.titolo || '-'}</strong></span></td>
+                <td title="${ticket.descrizione || ''}"><span class="truncate">${ticket.descrizione || '-'}</span></td>
+                <td>${ticket.inserito_da || 'Admin'}</td>
+                <td class="incarico-name"><i class="fa-regular fa-circle-user"></i> ${ticket.incarico || 'Non assegnato'}</td>
+                <td><span class="date-cell">${formattaData(ticket.inizioprevisto)}</span></td>
+                <td><span class="date-cell">${formattaData(ticket.fineprevista)}</span></td>
+                <td><span class="date-cell">${formattaData(ticket.datarilascio)}</span></td>
+                <td title="${ticket.descrizione_attivita || ''}"><span class="truncate">${ticket.descrizione_attivita || '-'}</span></td>
+            </tr>
+            `;
+        }).join('');
+    }
+
+    async function caricaDati() {
         try {
             const { data, error } = await _supabase
                 .from('tickets')
@@ -214,46 +338,11 @@
                 .order('id', { ascending: false });
 
             if (error) throw error;
-            if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="16" style="text-align:center; padding: 40px;">Nessun record trovato.</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = data.map(ticket => {
-                const isBloccante = ticket.bloccante === true || ticket.bloccante === "true" || ticket.bloccante === 1;
-                const dataInserimentoRaw = ticket.created_at || ticket.inserted_at;
-
-                return `
-                <tr class="clickable-row" onclick="location.href='form.html?id=${ticket.id}'">
-                    <td class="sticky-col">
-                        #${ticket.id}
-                        <i class="fas fa-trash-can delete-btn" title="Elimina definitivamente" 
-                           onclick="event.stopPropagation(); eliminaRecord(${ticket.id})"></i>
-                    </td>
-                    <td><span class="badge badge-stato">${ticket.stato || 'APERT'}</span></td>
-                    <td><span class="badge badge-tipo">${ticket.tipo || '-'}</span></td>
-                    <td>
-                        <span class="badge ${isBloccante ? 'badge-bloccante' : 'badge-no'}">
-                            ${isBloccante ? '<i class="fa-solid fa-bolt"></i> SÌ' : 'NO'}
-                        </span>
-                    </td>
-                    <td><span class="badge badge-priorita">${ticket.priorita || '-'}</span></td>
-                    <td><span class="date-cell">${formattaData(dataInserimentoRaw)}</span></td>
-                    <td>${ticket.ambito || '-'}</td>
-                    <td>${ticket.menu || '-'}</td>
-                    <td title="${ticket.titolo || ''}"><span class="truncate"><strong>${ticket.titolo || '-'}</strong></span></td>
-                    <td title="${ticket.descrizione || ''}"><span class="truncate">${ticket.descrizione || '-'}</span></td>
-                    <td>${ticket.inserito_da || 'Admin'}</td>
-                    <td class="incarico-name"><i class="fa-regular fa-circle-user"></i> ${ticket.incarico || 'Non assegnato'}</td>
-                    <td><span class="date-cell">${formattaData(ticket.inizioprevisto)}</span></td>
-                    <td><span class="date-cell">${formattaData(ticket.fineprevista)}</span></td>
-                    <td><span class="date-cell">${formattaData(ticket.datarilascio)}</span></td>
-                    <td title="${ticket.descrizione_attivita || ''}"><span class="truncate">${ticket.descrizione_attivita || '-'}</span></td>
-                </tr>
-                `;
-            }).join('');
+            datiGlobali = data || [];
+            popolaFiltri(datiGlobali);
+            renderizzaTabella(datiGlobali);
         } catch (err) {
-            tbody.innerHTML = `<tr><td colspan="16" style="text-align:center; color:var(--danger); font-weight:bold;">Errore critico: ${err.message}</td></tr>`;
+            document.getElementById('lista-body').innerHTML = `<tr><td colspan="16" style="text-align:center; color:var(--danger); font-weight:bold;">Errore critico: ${err.message}</td></tr>`;
         }
     }
 
