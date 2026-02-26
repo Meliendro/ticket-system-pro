@@ -79,7 +79,7 @@
                 <label>Stato</label>
                 <select id="stato-select" required onchange="gestisciCambioStato()"></select>
                 <div id="descrizione-stato-box" class="info-box" style="margin-top:10px;">
-                    Seleziona uno stato per visualizzare i dettagli...
+                    Seleziona uno stato...
                 </div>
             </div>
             <div>
@@ -144,38 +144,14 @@
 
         <div class="session-title"><span>Statistiche Workflow</span></div>
         <div class="grid-4">
-            <div>
-                <label>Data Nuovo</label>
-                <input type="date" id="datanuovo" readonly title="Impostata automaticamente">
-            </div>
-            <div>
-                <label>In Lavorazione</label>
-                <input type="date" id="datainlavorazione" readonly>
-            </div>
-            <div>
-                <label>Risolto</label>
-                <input type="date" id="datarisolto" readonly>
-            </div>
-            <div>
-                <label>Verificato</label>
-                <input type="date" id="dataverificato" readonly>
-            </div>
-            <div>
-                <label>Accettato</label>
-                <input type="date" id="dataaccettato" readonly>
-            </div>
-            <div>
-                <label>Chiuso</label>
-                <input type="date" id="datachiuso" readonly>
-            </div>
-            <div>
-                <label>Rifiutato</label>
-                <input type="date" id="datarifiutato" readonly>
-            </div>
-            <div>
-                <label>In Attesa</label>
-                <input type="date" id="datainattesa" readonly>
-            </div>
+            <div><label>Data Nuovo</label><input type="date" id="datanuovo" readonly></div>
+            <div><label>In Lavorazione</label><input type="date" id="datainlavorazione" readonly></div>
+            <div><label>Risolto</label><input type="date" id="datarisolto" readonly></div>
+            <div><label>Verificato</label><input type="date" id="dataverificato" readonly></div>
+            <div><label>Accettato</label><input type="date" id="dataaccettato" readonly></div>
+            <div><label>Chiuso</label><input type="date" id="datachiuso" readonly></div>
+            <div><label>Rifiutato</label><input type="date" id="datarifiutato" readonly></div>
+            <div><label>In Attesa</label><input type="date" id="datainattesa" readonly></div>
         </div>
 
         <div class="full-width">
@@ -205,7 +181,6 @@
     } else {
         document.getElementById('titolo-header').innerText = "Nuovo Ticket";
         document.getElementById('tkn-id').innerText = "NEW";
-        // Default per nuovo ticket
         setTimeout(() => {
             const dt = new Date().toISOString().split('T')[0];
             document.getElementById('datanuovo').value = dt;
@@ -246,12 +221,17 @@
         const val = document.getElementById('stato-select').value;
         const oggi = new Date().toISOString().split('T')[0];
 
-        // Aggiorna descrizione info-box
+        // Aggiorna descrizione info-box includendo il valore "gg"
         const box = document.getElementById('descrizione-stato-box');
         const statoTrovato = listaStatiGlobal.find(s => s.stato === val);
-        box.innerHTML = (statoTrovato && statoTrovato.descrizione) ? `<strong>Dettaglio:</strong> ${statoTrovato.descrizione}` : "Seleziona uno stato...";
+        
+        if (statoTrovato) {
+            const desc = statoTrovato.descrizione || "Nessuna descrizione";
+            const giorni = statoTrovato.gg || "N.D.";
+            box.innerHTML = `<strong>Dettaglio:</strong> ${desc}<br><strong>Tempo limite previsto:</strong> ${giorni} gg`;
+        }
 
-        // Alimentazione automatica date statistiche basata sullo stato
+        // Alimentazione automatica date statistiche
         const mappaStati = {
             'NUOVO': 'datanuovo',
             'IN LAVORAZIONE': 'datainlavorazione',
@@ -266,7 +246,6 @@
         const idCampo = mappaStati[val.toUpperCase()];
         if (idCampo) {
             const inputData = document.getElementById(idCampo);
-            // Inseriamo la data solo se il campo è vuoto (non sovrascriviamo la prima volta che è entrato in quello stato)
             if (!inputData.value) inputData.value = oggi;
         }
     }
@@ -290,14 +269,10 @@
             document.getElementById('logtecnico').value = data.logtecnico || '';
             
             // Carica date statistiche
-            document.getElementById('datanuovo').value = data.datanuovo || '';
-            document.getElementById('datainlavorazione').value = data.datainlavorazione || '';
-            document.getElementById('datarisolto').value = data.datarisolto || '';
-            document.getElementById('dataverificato').value = data.dataverificato || '';
-            document.getElementById('dataaccettato').value = data.dataaccettato || '';
-            document.getElementById('datachiuso').value = data.datachiuso || '';
-            document.getElementById('datarifiutato').value = data.datarifiutato || '';
-            document.getElementById('datainattesa').value = data.datainattesa || '';
+            const dateFields = ['datanuovo', 'datainlavorazione', 'datarisolto', 'dataverificato', 'dataaccettato', 'datachiuso', 'datarifiutato', 'datainattesa'];
+            dateFields.forEach(field => {
+                document.getElementById(field).value = data[field] || '';
+            });
 
             gestisciCambioStato(); 
         }
@@ -308,7 +283,7 @@
         const id = document.getElementById('ticket-id').value;
         const oraAttuale = new Date().toLocaleString('it-IT');
         let logAttuale = document.getElementById('logtecnico').value;
-        const nuovaNota = `[${oraAttuale}] Ticket aggiornato.\n`;
+        const nuovaNota = `[${oraAttuale}] Stato aggiornato a: ${document.getElementById('stato-select').value}\n`;
         logAttuale = nuovaNota + (logAttuale || "");
 
         const payload = {
@@ -325,7 +300,6 @@
             fineprevista: document.getElementById('fineprevista').value || null,
             datarilascio: document.getElementById('datarilascio').value || null,
             logtecnico: logAttuale,
-            // Campi statistici
             datanuovo: document.getElementById('datanuovo').value || null,
             datainlavorazione: document.getElementById('datainlavorazione').value || null,
             datarisolto: document.getElementById('datarisolto').value || null,
