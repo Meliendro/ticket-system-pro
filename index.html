@@ -78,20 +78,23 @@
             gap: 15px;
         }
 
-        .filter-expired-toggle {
+        .filter-btn {
             display: flex;
             align-items: center;
             gap: 10px;
-            background: #fee2e2;
             padding: 8px 15px;
             border-radius: 8px;
-            color: var(--danger);
             font-weight: 700;
             cursor: pointer;
-            border: 1px solid #fecaca;
             transition: 0.3s;
+            border: 1px solid transparent;
         }
+
+        .filter-expired-toggle { background: #fee2e2; color: var(--danger); border-color: #fecaca; }
         .filter-expired-toggle.active { background: var(--danger); color: white; }
+
+        .filter-annullati-toggle { background: #e2e8f0; color: #475569; border-color: #cbd5e1; }
+        .filter-annullati-toggle.active { background: #475569; color: white; }
 
         .btn-add { 
             background: var(--success);
@@ -112,7 +115,7 @@
             border: 1px solid #eef2f7;
         }
 
-        table { width: 100%; border-collapse: collapse; min-width: 3500px; } /* Aumentata larghezza per nuove colonne */
+        table { width: 100%; border-collapse: collapse; min-width: 3500px; }
         th { 
             background-color: #f8fafc; 
             color: #475569; 
@@ -142,6 +145,7 @@
         .badge-tipo { background: #e0f2fe; color: #0369a1; }
         .badge-priorita { background: #fff7ed; color: #9a3412; }
         .badge-bloccante { background: #fee2e2; color: #991b1b; }
+        .badge-annullato { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
 
         .expired-icon { color: var(--danger); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
@@ -187,8 +191,11 @@
 
     <div class="controls-row">
         <div style="display: flex; gap: 15px; align-items: center;">
-            <div id="btn-toggle-expired" class="filter-expired-toggle" onclick="toggleSoloScaduti()">
+            <div id="btn-toggle-expired" class="filter-btn filter-expired-toggle" onclick="toggleSoloScaduti()">
                 <i class="fas fa-clock"></i> Mostra Solo Scaduti
+            </div>
+            <div id="btn-toggle-annullati" class="filter-btn filter-annullati-toggle" onclick="toggleMostraAnnullati()">
+                <i class="fas fa-eye-slash"></i> Mostra Annullati
             </div>
         </div>
     </div>
@@ -237,11 +244,14 @@
 
     let datiGlobali = [];
     let soloScadutiAttivo = false;
+    let mostraAnnullati = false;
 
     function formattaData(d) { return d ? new Date(d).toLocaleDateString('it-IT') : '-'; }
 
     function isScaduto(t) {
         const stato = (t.stato || "").toUpperCase();
+        if (stato === "ANNULLATO") return false;
+        
         let scadenzaStr = "";
         if (stato.includes("NUOVO") || stato.includes("APERTO")) scadenzaStr = t.datanuovos;
         else if (stato.includes("LAVORAZIONE") || stato.includes("CORSO")) scadenzaStr = t.datainlavoraziones;
@@ -261,6 +271,14 @@
     function toggleSoloScaduti() {
         soloScadutiAttivo = !soloScadutiAttivo;
         document.getElementById('btn-toggle-expired').classList.toggle('active', soloScadutiAttivo);
+        applicaFiltri();
+    }
+
+    function toggleMostraAnnullati() {
+        mostraAnnullati = !mostraAnnullati;
+        const btn = document.getElementById('btn-toggle-annullati');
+        btn.classList.toggle('active', mostraAnnullati);
+        btn.innerHTML = mostraAnnullati ? '<i class="fas fa-eye"></i> Nascondi Annullati' : '<i class="fas fa-eye-slash"></i> Mostra Annullati';
         applicaFiltri();
     }
 
@@ -289,7 +307,11 @@
         const filtrati = datiGlobali.filter(t => {
             const blocc = (t.bloccante === true || t.bloccante === "true" || t.bloccante === 1) ? 'SÌ' : 'NO';
             const scad = isScaduto(t);
+            const isAnnullato = (t.stato || "").toUpperCase() === "ANNULLATO";
             
+            // Logica Filtro Annullati
+            if (!mostraAnnullati && isAnnullato) return false;
+
             return (fS === "" || t.stato === fS) &&
                    (fT === "" || t.tipo === fT) &&
                    (fP === "" || t.priorita === fP) &&
@@ -313,6 +335,8 @@
         tbody.innerHTML = data.map(t => {
             const scad = isScaduto(t);
             const isB = t.bloccante == true || t.bloccante == "true";
+            const isAnnullato = (t.stato || "").toUpperCase() === "ANNULLATO";
+            
             let pC = '';
             const p = (t.priorita || '').toUpperCase();
             if(p.includes('ALTA')) pC = 'prio-alta';
@@ -320,9 +344,9 @@
             else if(p.includes('BASSA')) pC = 'prio-bassa';
 
             return `
-            <tr onclick="location.href='form.html?id=${t.id}'" style="cursor:pointer">
+            <tr onclick="location.href='form.html?id=${t.id}'" style="cursor:pointer; opacity: ${isAnnullato ? '0.7' : '1'}">
                 <td class="sticky-col ${pC}">#${t.id} <i class="fas fa-trash delete-btn" onclick="event.stopPropagation(); elimina(${t.id})"></i></td>
-                <td><span class="badge badge-stato">${t.stato || 'APERTO'} ${scad ? '<i class="fas fa-clock expired-icon"></i>' : ''}</span></td>
+                <td><span class="badge ${isAnnullato ? 'badge-annullato' : 'badge-stato'}">${t.stato || 'APERTO'} ${scad ? '<i class="fas fa-clock expired-icon"></i>' : ''}</span></td>
                 <td><span class="badge badge-tipo">${t.tipo || '-'}</span></td>
                 <td><span class="badge ${isB ? 'badge-bloccante' : ''}">${isB ? 'SÌ' : 'NO'}</span></td>
                 <td><span class="badge badge-priorita">${t.priorita || '-'}</span></td>
@@ -355,7 +379,7 @@
             datiGlobali = data;
             popolaFiltri(data);
             aggiornaStats(data);
-            renderizzaTabella(data);
+            applicaFiltri(); // Usa applicaFiltri invece di renderizza direttamente per rispettare lo stato iniziale
         }
     }
 
