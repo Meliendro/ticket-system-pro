@@ -15,9 +15,9 @@
             --border-color: #e2e8f0;
         }
 
-        /* Applicazione Font Century Gothic */
+        /* Applicazione Font Century Gothic su tutto il form */
         * { 
-            font-family: 'Century Gothic', AppleGothic, sans-serif; 
+            font-family: 'Century Gothic', 'AppleGothic', 'CenturyGothic', sans-serif; 
         }
 
         body { 
@@ -28,7 +28,7 @@
 
         .container { max-width: 1000px; margin: auto; background: transparent; }
 
-        /* HEADER PULITO */
+        /* HEADER PULITO SENZA ESCI */
         .header-top { 
             display: flex; 
             justify-content: space-between; 
@@ -37,17 +37,8 @@
             border-bottom: 2px solid var(--accent-blue);
             padding-bottom: 15px;
         }
-        .header-top h1 { font-size: 28px; margin: 0; color: var(--primary); }
+        .header-top h1 { font-size: 28px; margin: 0; color: var(--text-main); }
         .tkn-badge { background: #fff; border: 1px solid #ddd; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
-        
-        .btn-exit { 
-            color: #e74c3c; 
-            text-decoration: none; 
-            font-weight: bold; 
-            cursor: pointer; 
-            font-size: 14px;
-            text-transform: uppercase;
-        }
 
         /* SESSIONI */
         .session-title { 
@@ -75,7 +66,6 @@
         .info-box { 
             background-color: var(--info-bg); border-radius: 8px; padding: 12px; 
             font-size: 13px; color: var(--accent-blue); border: 1px solid #d1e9ff; line-height: 1.4;
-            min-height: 20px;
         }
 
         .full-width { margin-bottom: 20px; }
@@ -95,10 +85,7 @@
 <div class="container">
     <div class="header-top">
         <h1 id="titolo-header">Caricamento...</h1>
-        <div>
-            <span class="tkn-badge">TKN: <span id="tkn-id">--</span></span>
-            <a class="btn-exit" onclick="location.href='index.html'" style="margin-left: 15px;">Esci</a>
-        </div>
+        <div class="tkn-badge">TKN: <span id="tkn-id">--</span></div>
     </div>
 
     <form id="form-ticket">
@@ -210,7 +197,7 @@
     async function inizializza() {
         try {
             const [resStati, resTipi, resPriorita, resAmbiti, resMenu] = await Promise.all([
-                _supabase.from('stato').select('*'), // Prendo tutto per avere la descrizione
+                _supabase.from('stato').select('*'),
                 _supabase.from('tipo').select('tipo'),
                 _supabase.from('priorita').select('priorita'),
                 _supabase.from('ambito').select('ambito'),
@@ -245,7 +232,7 @@
         if (statoTrovato && statoTrovato.descrizione) {
             box.innerHTML = `<strong>Dettaglio:</strong> ${statoTrovato.descrizione}`;
         } else {
-            box.innerHTML = "Nessuna descrizione disponibile per questo stato.";
+            box.innerHTML = "Seleziona uno stato per visualizzare i dettagli...";
         }
     }
 
@@ -267,7 +254,6 @@
             document.getElementById('datarilascio').value = data.datarilascio || '';
             document.getElementById('logtecnico').value = data.logtecnico || '';
             
-            // Aggiorno la info-box dopo il caricamento
             aggiornaDescrizioneStato();
         }
     }
@@ -276,11 +262,10 @@
         e.preventDefault();
         const id = document.getElementById('ticket-id').value;
         
-        // Logica per il Log Tecnico: aggiunge data e ora
         const oraAttuale = new Date().toLocaleString('it-IT');
         let logAttuale = document.getElementById('logtecnico').value;
-        const nuovaNota = `[${oraAttuale}] Ticket aggiornato correttamente.\n`;
-        logAttuale = nuovaNota + logAttuale;
+        const nuovaNota = `[${oraAttuale}] Ticket salvato.\n`;
+        logAttuale = nuovaNota + (logAttuale || "");
 
         const payload = {
             titolo: document.getElementById('titolo').value,
@@ -301,7 +286,7 @@
         const res = id ? await _supabase.from('tickets').update(payload).eq('id', id) : await _supabase.from('tickets').insert([payload]);
         if (!res.error) location.href = 'index.html';
         else alert("Errore: " + res.error.message);
-    } );
+    });
 
     inizializza();
 </script>
