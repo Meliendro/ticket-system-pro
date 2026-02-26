@@ -11,12 +11,11 @@
             --text-main: #333;
             --text-gray: #888;
             --accent-blue: #3b82f6;
-            --danger: #ef4444;
             --info-bg: #ebf5ff;
             --border-color: #e2e8f0;
         }
 
-        * { font-family: 'Century Gothic', 'AppleGothic', 'CenturyGothic', sans-serif; box-sizing: border-box; }
+        * { font-family: 'Century Gothic', 'AppleGothic', 'CenturyGothic', sans-serif; }
 
         body { background-color: var(--bg-color); color: var(--text-main); padding: 20px; }
         .container { max-width: 1000px; margin: auto; background: transparent; }
@@ -36,14 +35,11 @@
         .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; }
         .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
         
-        .workflow-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #eee; }
-
         label { display: block; font-size: 11px; font-weight: bold; color: var(--text-gray); text-transform: uppercase; margin-bottom: 5px; }
-        label.label-s { color: var(--danger); }
         
         input, select, textarea { 
             width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; 
-            font-size: 14px; background: white; outline: none;
+            font-size: 14px; background: white; box-sizing: border-box; outline: none;
         }
         input:focus, select:focus, textarea:focus { border-color: var(--accent-blue); box-shadow: 0 0 5px rgba(59,130,246,0.2); }
         input[readonly] { background-color: #f1f5f9; cursor: not-allowed; color: #64748b; }
@@ -55,6 +51,7 @@
 
         .full-width { margin-bottom: 20px; }
         textarea { height: 100px; resize: vertical; }
+        
         #logtecnico { font-family: 'Courier New', monospace; font-size: 13px; background-color: #fcfcfc; color: #555; }
 
         .footer-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px; }
@@ -85,13 +82,25 @@
                     Seleziona uno stato...
                 </div>
             </div>
-            <div><label>Priorità</label><select id="priorita-select" required></select></div>
-            <div><label>Tipo</label><select id="tipo-select" required></select></div>
+            <div>
+                <label>Priorità</label>
+                <select id="priorita-select" required></select>
+            </div>
+            <div>
+                <label>Tipo</label>
+                <select id="tipo-select" required></select>
+            </div>
         </div>
 
         <div class="grid-3">
-            <div><label>Ambito</label><select id="ambito-select" required></select></div>
-            <div><label>Menu</label><select id="menu-select" required></select></div>
+            <div>
+                <label>Ambito</label>
+                <select id="ambito-select" required></select>
+            </div>
+            <div>
+                <label>Menu</label>
+                <select id="menu-select" required></select>
+            </div>
             <div>
                 <label>Bloccante</label>
                 <select id="bloccante-select" required>
@@ -112,53 +121,42 @@
             <textarea id="descrizione" placeholder="Dettagli della segnalazione..."></textarea>
         </div>
 
-        <div class="session-title"><span>Gestione Operativa</span></div>
+        <div class="session-title"><span>Gestione</span></div>
+
         <div class="grid-4">
-            <div><label>Incarico A</label><input type="text" id="incarico"></div>
-            <div><label>Inizio Previsto</label><input type="date" id="inizioprevisto"></div>
-            <div><label>Fine Prevista</label><input type="date" id="fineprevista"></div>
-            <div><label>Data Rilascio</label><input type="date" id="datarilascio"></div>
+            <div>
+                <label>Incarico A</label>
+                <input type="text" id="incarico" placeholder="Nome tecnico">
+            </div>
+            <div>
+                <label>Inizio Previsto</label>
+                <input type="date" id="inizioprevisto">
+            </div>
+            <div>
+                <label>Fine Prevista</label>
+                <input type="date" id="fineprevista">
+            </div>
+            <div>
+                <label>Data Rilascio</label>
+                <input type="date" id="datarilascio">
+            </div>
         </div>
 
-        <div class="session-title"><span>Timeline & Scadenze (Workflow)</span></div>
+        <div class="session-title"><span>Statistiche Workflow</span></div>
         <div class="grid-4">
-            <div class="workflow-row">
-                <div><label>Nuovo</label><input type="date" id="datanuovo" readonly></div>
-                <div><label class="label-s">Scad. Nuovo</label><input type="date" id="datanuovos" readonly></div>
-            </div>
-            <div class="workflow-row">
-                <div><label>In Lav.</label><input type="date" id="datainlavorazione" readonly></div>
-                <div><label class="label-s">Scad. Lav.</label><input type="date" id="datainlavoraziones" readonly></div>
-            </div>
-            <div class="workflow-row">
-                <div><label>Risolto</label><input type="date" id="datarisolto" readonly></div>
-                <div><label class="label-s">Scad. Ris.</label><input type="date" id="datarisoltos" readonly></div>
-            </div>
-            <div class="workflow-row">
-                <div><label>Verificato</label><input type="date" id="dataverificato" readonly></div>
-                <div><label class="label-s">Scad. Ver.</label><input type="date" id="dataverificatos" readonly></div>
-            </div>
-            <div class="workflow-row">
-                <div><label>Accettato</label><input type="date" id="dataaccettato" readonly></div>
-                <div><label class="label-s">Scad. Acc.</label><input type="date" id="dataaccettatos" readonly></div>
-            </div>
-            <div class="workflow-row">
-                <div><label>Chiuso</label><input type="date" id="datachiuso" readonly></div>
-                <div><label class="label-s">Scad. Chiuso</label><input type="date" id="datachiusos" readonly></div>
-            </div>
-            <div class="workflow-row">
-                <div><label>Rifiutato</label><input type="date" id="datarifiutato" readonly></div>
-                <div><label class="label-s">Scad. Rif.</label><input type="date" id="datarifiutatos" readonly></div>
-            </div>
-            <div class="workflow-row">
-                <div><label>In Attesa</label><input type="date" id="datainattesa" readonly></div>
-                <div><label class="label-s">Scad. Att.</label><input type="date" id="datainattesas" readonly></div>
-            </div>
+            <div><label>Data Nuovo</label><input type="date" id="datanuovo" readonly></div>
+            <div><label>In Lavorazione</label><input type="date" id="datainlavorazione" readonly></div>
+            <div><label>Risolto</label><input type="date" id="datarisolto" readonly></div>
+            <div><label>Verificato</label><input type="date" id="dataverificato" readonly></div>
+            <div><label>Accettato</label><input type="date" id="dataaccettato" readonly></div>
+            <div><label>Chiuso</label><input type="date" id="datachiuso" readonly></div>
+            <div><label>Rifiutato</label><input type="date" id="datarifiutato" readonly></div>
+            <div><label>In Attesa</label><input type="date" id="datainattesa" readonly></div>
         </div>
 
         <div class="full-width">
             <label>Log Tecnico (Storico modifiche)</label>
-            <textarea id="logtecnico" readonly></textarea>
+            <textarea id="logtecnico" placeholder="Lo storico verrà aggiornato automaticamente..." readonly></textarea>
         </div>
 
         <div class="footer-actions">
@@ -177,7 +175,17 @@
     const editId = urlParams.get('id');
     let listaStatiGlobal = [];
 
-    const campiWorkflow = ['datanuovo', 'datainlavorazione', 'datarisolto', 'dataverificato', 'dataaccettato', 'datachiuso', 'datarifiutato', 'datainattesa'];
+    if (editId) {
+        document.getElementById('titolo-header').innerText = "Modifica Ticket #" + editId;
+        document.getElementById('tkn-id').innerText = editId;
+    } else {
+        document.getElementById('titolo-header').innerText = "Nuovo Ticket";
+        document.getElementById('tkn-id').innerText = "NEW";
+        setTimeout(() => {
+            const dt = new Date().toISOString().split('T')[0];
+            document.getElementById('datanuovo').value = dt;
+        }, 1000);
+    }
 
     async function inizializza() {
         try {
@@ -196,59 +204,49 @@
             popolaSelect('ambito-select', resAmbiti, 'ambito', 'Ambito');
             popolaSelect('menu-select', resMenu, 'menu', 'Menu');
 
-            if (editId) {
-                document.getElementById('titolo-header').innerText = "Modifica Ticket #" + editId;
-                document.getElementById('tkn-id').innerText = editId;
-                await caricaDatiTicket(editId);
-            } else {
-                document.getElementById('titolo-header').innerText = "Nuovo Ticket";
-                document.getElementById('tkn-id').innerText = "NEW";
-            }
+            if (editId) await caricaDatiTicket(editId);
         } catch (err) { console.error(err); }
     }
 
     function popolaSelect(id, response, column, placeholder) {
         const select = document.getElementById(id);
         if (response.data) {
-            select.innerHTML = `<option value="" selected disabled>-- ${placeholder} --</option>` + 
-                response.data.map(i => `<option value="${i[column]}">${i[column]}</option>`).join('');
+            let options = `<option value="" selected disabled>-- ${placeholder} --</option>`;
+            options += response.data.map(i => `<option value="${i[column]}">${i[column]}</option>`).join('');
+            select.innerHTML = options;
         }
     }
 
     function gestisciCambioStato() {
-        const valSelt = document.getElementById('stato-select').value;
-        const oggi = new Date();
-        const oggiStr = oggi.toLocaleDateString('sv-SE'); // Formato YYYY-MM-DD corretto
+        const val = document.getElementById('stato-select').value;
+        const oggi = new Date().toISOString().split('T')[0];
 
-        const statoTrovato = listaStatiGlobal.find(s => s.stato.toUpperCase() === valSelt.toUpperCase());
+        // Aggiorna descrizione info-box includendo il valore "gg"
         const box = document.getElementById('descrizione-stato-box');
+        const statoTrovato = listaStatiGlobal.find(s => s.stato === val);
         
         if (statoTrovato) {
-            const giorni = parseInt(statoTrovato.gg) || 0;
-            box.innerHTML = `<strong>Dettaglio:</strong> ${statoTrovato.descrizione || '...'}<br><strong>Tempo previsto:</strong> ${giorni} gg`;
+            const desc = statoTrovato.descrizione || "Nessuna descrizione";
+            const giorni = statoTrovato.gg || "N.D.";
+            box.innerHTML = `<strong>Dettaglio:</strong> ${desc}<br><strong>Tempo limite previsto:</strong> ${giorni} gg`;
+        }
 
-            const mappaStati = {
-                'NUOVO': 'datanuovo', 'IN LAVORAZIONE': 'datainlavorazione', 'RISOLTO': 'datarisolto', 
-                'VERIFICATO': 'dataverificato', 'ACCETTATO': 'dataaccettato', 'CHIUSO': 'datachiuso', 
-                'RIFIUTATO': 'datarifiutato', 'IN ATTESA': 'datainattesa'
-            };
+        // Alimentazione automatica date statistiche
+        const mappaStati = {
+            'NUOVO': 'datanuovo',
+            'IN LAVORAZIONE': 'datainlavorazione',
+            'RISOLTO': 'datarisolto',
+            'VERIFICATO': 'dataverificato',
+            'ACCETTATO': 'dataaccettato',
+            'CHIUSO': 'datachiuso',
+            'RIFIUTATO': 'datarifiutato',
+            'IN ATTESA': 'datainattesa'
+        };
 
-            const idCampoBase = mappaStati[valSelt.toUpperCase()];
-            if (idCampoBase) {
-                const fieldData = document.getElementById(idCampoBase);
-                const fieldScad = document.getElementById(idCampoBase + 's');
-                
-                if (!fieldData.value) {
-                    fieldData.value = oggiStr;
-                }
-                
-                // Ricalcola la scadenza basandosi sulla data del campo base
-                if (fieldData.value) {
-                    let dScad = new Date(fieldData.value);
-                    dScad.setDate(dScad.getDate() + giorni);
-                    fieldScad.value = dScad.toLocaleDateString('sv-SE');
-                }
-            }
+        const idCampo = mappaStati[val.toUpperCase()];
+        if (idCampo) {
+            const inputData = document.getElementById(idCampo);
+            if (!inputData.value) inputData.value = oggi;
         }
     }
 
@@ -270,25 +268,23 @@
             document.getElementById('datarilascio').value = data.datarilascio || '';
             document.getElementById('logtecnico').value = data.logtecnico || '';
             
-            campiWorkflow.forEach(f => {
-                document.getElementById(f).value = data[f] || '';
-                document.getElementById(f + 's').value = data[f + 's'] || '';
+            // Carica date statistiche
+            const dateFields = ['datanuovo', 'datainlavorazione', 'datarisolto', 'dataverificato', 'dataaccettato', 'datachiuso', 'datarifiutato', 'datainattesa'];
+            dateFields.forEach(field => {
+                document.getElementById(field).value = data[field] || '';
             });
-            
-            // Aggiorna box info blu
-            const stFound = listaStatiGlobal.find(s => s.stato.toUpperCase() === (data.stato || "").toUpperCase());
-            if(stFound) {
-                document.getElementById('descrizione-stato-box').innerHTML = 
-                    `<strong>Dettaglio:</strong> ${stFound.descrizione || '...'}<br><strong>Tempo previsto:</strong> ${stFound.gg || 0} gg`;
-            }
+
+            gestisciCambioStato(); 
         }
     }
 
     document.getElementById('form-ticket').addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = document.getElementById('ticket-id').value;
-        const logAttuale = document.getElementById('logtecnico').value;
-        const nuovaNota = `[${new Date().toLocaleString('it-IT')}] Aggiornamento dati\n` + (logAttuale || "");
+        const oraAttuale = new Date().toLocaleString('it-IT');
+        let logAttuale = document.getElementById('logtecnico').value;
+        const nuovaNota = `[${oraAttuale}] Stato aggiornato a: ${document.getElementById('stato-select').value}\n`;
+        logAttuale = nuovaNota + (logAttuale || "");
 
         const payload = {
             titolo: document.getElementById('titolo').value,
@@ -303,27 +299,20 @@
             inizioprevisto: document.getElementById('inizioprevisto').value || null,
             fineprevista: document.getElementById('fineprevista').value || null,
             datarilascio: document.getElementById('datarilascio').value || null,
-            logtecnico: nuovaNota
+            logtecnico: logAttuale,
+            datanuovo: document.getElementById('datanuovo').value || null,
+            datainlavorazione: document.getElementById('datainlavorazione').value || null,
+            datarisolto: document.getElementById('datarisolto').value || null,
+            dataverificato: document.getElementById('dataverificato').value || null,
+            dataaccettato: document.getElementById('dataaccettato').value || null,
+            datachiuso: document.getElementById('datachiuso').value || null,
+            datarifiutato: document.getElementById('datarifiutato').value || null,
+            datainattesa: document.getElementById('datainattesa').value || null
         };
 
-        // Caricamento dinamico di tutte le date workflow nel payload
-        campiWorkflow.forEach(f => {
-            payload[f] = document.getElementById(f).value || null;
-            payload[f + 's'] = document.getElementById(f + 's').value || null;
-        });
-
-        console.log("Salvataggio in corso...", payload);
-
-        const { data, error } = id 
-            ? await _supabase.from('tickets').update(payload).eq('id', id) 
-            : await _supabase.from('tickets').insert([payload]);
-
-        if (!error) {
-            location.href = 'index.html';
-        } else {
-            console.error("Errore Supabase:", error);
-            alert("Errore durante il salvataggio: " + error.message);
-        }
+        const res = id ? await _supabase.from('tickets').update(payload).eq('id', id) : await _supabase.from('tickets').insert([payload]);
+        if (!res.error) location.href = 'index.html';
+        else alert("Errore: " + res.error.message);
     });
 
     inizializza();
