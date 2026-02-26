@@ -112,7 +112,7 @@
             <textarea id="descrizione" placeholder="Dettagli della segnalazione..."></textarea>
         </div>
 
-        <div class="session-title"><span>Gestione</span></div>
+        <div class="session-title"><span>Gestione Operativa</span></div>
         <div class="grid-4">
             <div><label>Incarico A</label><input type="text" id="incarico" placeholder="Nome tecnico"></div>
             <div><label>Inizio Previsto</label><input type="date" id="inizioprevisto"></div>
@@ -123,11 +123,11 @@
         <div class="session-title"><span>Statistiche Workflow & Scadenze</span></div>
         <div class="grid-4">
             <div class="workflow-item">
-                <label>Data Nuovo</label><input type="date" id="datanuovo" readonly>
+                <label>Nuovo / Aperto</label><input type="date" id="datanuovo" readonly>
                 <label class="scadenza-label">Scadenza Nuovo</label><input type="date" id="datanuovos" readonly>
             </div>
             <div class="workflow-item">
-                <label>In Lavorazione</label><input type="date" id="datainlavorazione" readonly>
+                <label>In Lavorazione / Corso</label><input type="date" id="datainlavorazione" readonly>
                 <label class="scadenza-label">Scadenza Lav.</label><input type="date" id="datainlavoraziones" readonly>
             </div>
             <div class="workflow-item">
@@ -139,7 +139,7 @@
                 <label class="scadenza-label">Scadenza Verif.</label><input type="date" id="dataverificatos" readonly>
             </div>
             <div class="workflow-item">
-                <label>Accettato</label><input type="date" id="dataaccettato" readonly>
+                <label>Accettato / Approvato</label><input type="date" id="dataaccettato" readonly>
                 <label class="scadenza-label">Scadenza Accett.</label><input type="date" id="dataaccettatos" readonly>
             </div>
             <div class="workflow-item">
@@ -147,11 +147,11 @@
                 <label class="scadenza-label">Scadenza Chiuso</label><input type="date" id="datachiusos" readonly>
             </div>
             <div class="workflow-item">
-                <label>Rifiutato</label><input type="date" id="datarifiutato" readonly>
+                <label>Rifiutato / Non Accettato</label><input type="date" id="datarifiutato" readonly>
                 <label class="scadenza-label">Scadenza Rifiut.</label><input type="date" id="datarifiutatos" readonly>
             </div>
             <div class="workflow-item">
-                <label>In Attesa</label><input type="date" id="datainattesa" readonly>
+                <label>In Attesa / Sospeso</label><input type="date" id="datainattesa" readonly>
                 <label class="scadenza-label">Scadenza Attesa</label><input type="date" id="datainattesas" readonly>
             </div>
         </div>
@@ -216,34 +216,34 @@
     }
 
     function gestisciCambioStato() {
-        const valSelt = document.getElementById('stato-select').value;
+        const valSelt = document.getElementById('stato-select').value.toUpperCase();
         const oggi = new Date();
         const oggiStr = oggi.toLocaleDateString('sv-SE'); 
 
-        const statoTrovato = listaStatiGlobal.find(s => s.stato.toUpperCase() === valSelt.toUpperCase());
+        const statoTrovato = listaStatiGlobal.find(s => s.stato.toUpperCase() === valSelt);
         const box = document.getElementById('descrizione-stato-box');
         
         if (statoTrovato) {
             const giorni = parseInt(statoTrovato.gg) || 0;
             box.innerHTML = `<strong>Dettaglio:</strong> ${statoTrovato.descrizione || '...'}<br><strong>Tempo limite:</strong> ${giorni} gg`;
 
-            const mappaStati = {
-                'NUOVO': 'datanuovo',
-                'IN LAVORAZIONE': 'datainlavorazione',
-                'RISOLTO': 'datarisolto',
-                'VERIFICATO': 'dataverificato',
-                'ACCETTATO': 'dataaccettato',
-                'CHIUSO': 'datachiuso',
-                'RIFIUTATO': 'datarifiutato',
-                'IN ATTESA': 'datainattesa'
-            };
+            let idCampoBase = "";
 
-            const idCampoBase = mappaStati[valSelt.toUpperCase()];
+            // Logica di abbinamento basata sui tuoi requisiti
+            if (valSelt.includes("NUOVO") || valSelt.includes("APERTO")) idCampoBase = "datanuovo";
+            else if (valSelt.includes("LAVORAZIONE") || valSelt.includes("CORSO")) idCampoBase = "datainlavorazione";
+            else if (valSelt.includes("RISOLTO")) idCampoBase = "datarisolto";
+            else if (valSelt.includes("VERIFICATO")) idCampoBase = "dataverificato";
+            else if (valSelt.includes("ACCETTATO") || valSelt.includes("APPROVATO")) idCampoBase = "dataaccettato";
+            else if (valSelt.includes("CHIUSO")) idCampoBase = "datachiuso";
+            else if (valSelt.includes("RIFIUTATO") || valSelt.includes("NON ACCETTATO")) idCampoBase = "datarifiutato";
+            else if (valSelt.includes("ATTESA") || valSelt.includes("SOSPESO")) idCampoBase = "datainattesa";
+
             if (idCampoBase) {
                 const inputData = document.getElementById(idCampoBase);
                 const inputScadenza = document.getElementById(idCampoBase + 's');
                 
-                // Inizializza i campi se la data base è vuota
+                // Inizializza i campi solo se la data base è vuota
                 if (!inputData.value) {
                     inputData.value = oggiStr;
                     
