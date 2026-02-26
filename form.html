@@ -216,11 +216,14 @@
     }
 
     function gestisciCambioStato() {
-        const valSelt = document.getElementById('stato-select').value.toUpperCase().trim();
+        // Legge lo stato, toglie spazi e porta tutto in maiuscolo
+        const valSeltOriginale = document.getElementById('stato-select').value || "";
+        const valSelt = valSeltOriginale.toUpperCase().replace(/\s/g, ''); 
+        
         const oggi = new Date();
         const oggiStr = oggi.toLocaleDateString('sv-SE'); 
 
-        const statoTrovato = listaStatiGlobal.find(s => s.stato.toUpperCase().trim() === valSelt);
+        const statoTrovato = listaStatiGlobal.find(s => (s.stato || "").toUpperCase().replace(/\s/g, '') === valSelt);
         const box = document.getElementById('descrizione-stato-box');
         
         if (statoTrovato) {
@@ -229,7 +232,7 @@
 
             let idCampoBase = "";
 
-            // Ricerca flessibile per parole chiave per evitare problemi con slash o spazi
+            // Ricerca flessibile basata su frammenti di parole chiave
             if (valSelt.includes("NUOVO") || valSelt.includes("APERTO")) {
                 idCampoBase = "datanuovo";
             } else if (valSelt.includes("LAVORAZIONE") || valSelt.includes("CORSO")) {
@@ -242,7 +245,7 @@
                 idCampoBase = "dataaccettato";
             } else if (valSelt.includes("CHIUSO")) {
                 idCampoBase = "datachiuso";
-            } else if (valSelt.includes("RIFIUTATO") || (valSelt.includes("NON") && valSelt.includes("ACCETTATO"))) {
+            } else if (valSelt.includes("RIFIUTATO") || (valSelt.includes("NON") && valSelt.includes("ACCETT"))) {
                 idCampoBase = "datarifiutato";
             } else if (valSelt.includes("ATTESA") || valSelt.includes("SOSPESO")) {
                 idCampoBase = "datainattesa";
@@ -252,7 +255,7 @@
                 const inputData = document.getElementById(idCampoBase);
                 const inputScadenza = document.getElementById(idCampoBase + 's');
                 
-                // Aggiorna solo se la data base è vuota (per evitare sovrascritture accidentali)
+                // Inizializza i campi solo se la data base è attualmente vuota
                 if (!inputData.value) {
                     inputData.value = oggiStr;
                     
