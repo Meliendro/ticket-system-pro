@@ -219,8 +219,6 @@
         const valSeltOriginale = document.getElementById('stato-select').value || "";
         const valSelt = valSeltOriginale.toUpperCase().trim();
         
-        console.log("Stato selezionato:", valSelt); // Debug utile in console F12
-
         const oggi = new Date();
         const oggiStr = oggi.toLocaleDateString('sv-SE'); 
 
@@ -233,40 +231,36 @@
 
             let idCampoBase = "";
 
-            // LOGICA DI AGGANCIO AI CAMPI (MOLTO PIU' ROBUSTA)
-            if (valSelt.indexOf("NUOVO") !== -1 || valSelt.indexOf("APERTO") !== -1) {
+            // LOGICA DI AGGANCIO AI CAMPI
+            if (valSelt.includes("NUOVO") || valSelt.includes("APERTO")) {
                 idCampoBase = "datanuovo";
-            } else if (valSelt.indexOf("LAVORAZIONE") !== -1 || valSelt.indexOf("CORSO") !== -1) {
+            } else if (valSelt.includes("LAVORAZIONE") || valSelt.includes("CORSO")) {
                 idCampoBase = "datainlavorazione";
-            } else if (valSelt.indexOf("RISOLTO") !== -1) {
+            } else if (valSelt.includes("RISOLTO")) {
                 idCampoBase = "datarisolto";
-            } else if (valSelt.indexOf("VERIFICATO") !== -1) {
+            } else if (valSelt.includes("VERIFICATO")) {
                 idCampoBase = "dataverificato";
-            } else if (valSelt.indexOf("ACCETTATO") !== -1 || valSelt.indexOf("APPROVATO") !== -1) {
-                // Se è "Accettato" ma NON è parte di "Non accettato"
-                if (valSelt.indexOf("NON") === -1) {
-                    idCampoBase = "dataaccettato";
-                } else {
-                    idCampoBase = "datarifiutato";
-                }
-            } else if (valSelt.indexOf("CHIUSO") !== -1) {
-                idCampoBase = "datachiuso";
-            } else if (valSelt.indexOf("RIFIUTATO") !== -1 || (valSelt.indexOf("NON") !== -1 && valSelt.indexOf("ACCETT") !== -1)) {
+            } else if (valSelt.includes("RIFIUTATO") || (valSelt.includes("NON") && valSelt.includes("ACCETTATO"))) {
+                // Priorità al Rifiutato prima dell'accettato
                 idCampoBase = "datarifiutato";
-            } else if (valSelt.indexOf("ATTESA") !== -1 || valSelt.indexOf("SOSPESO") !== -1) {
+            } else if (valSelt.includes("ACCETTATO") || valSelt.includes("APPROVATO")) {
+                idCampoBase = "dataaccettato";
+            } else if (valSelt.includes("CHIUSO")) {
+                idCampoBase = "datachiuso";
+            } else if (valSelt.includes("ATTESA") || valSelt.includes("SOSPESO")) {
                 idCampoBase = "datainattesa";
             }
 
             if (idCampoBase) {
-                console.log("Aggiorno campo:", idCampoBase);
                 const inputData = document.getElementById(idCampoBase);
                 const inputScadenza = document.getElementById(idCampoBase + 's');
                 
-                if (!inputData.value) {
+                // Popola solo se vuoto
+                if (inputData && !inputData.value) {
                     inputData.value = oggiStr;
                     let dataScad = new Date(oggi);
                     dataScad.setDate(dataScad.getDate() + giorni);
-                    inputScadenza.value = dataScad.toLocaleDateString('sv-SE');
+                    if (inputScadenza) inputScadenza.value = dataScad.toLocaleDateString('sv-SE');
                 }
             }
         }
@@ -291,8 +285,10 @@
             document.getElementById('logtecnico').value = data.logtecnico || '';
             
             workflowFields.forEach(f => {
-                document.getElementById(f).value = data[f] || '';
-                document.getElementById(f + 's').value = data[f + 's'] || '';
+                const fData = document.getElementById(f);
+                const fScad = document.getElementById(f + 's');
+                if (fData) fData.value = data[f] || '';
+                if (fScad) fScad.value = data[f + 's'] || '';
             });
 
             const stFound = listaStatiGlobal.find(s => s.stato === data.stato);
