@@ -216,14 +216,15 @@
     }
 
     function gestisciCambioStato() {
-        // Legge lo stato, toglie spazi e porta tutto in maiuscolo
         const valSeltOriginale = document.getElementById('stato-select').value || "";
-        const valSelt = valSeltOriginale.toUpperCase().replace(/\s/g, ''); 
+        const valSelt = valSeltOriginale.toUpperCase().trim();
         
+        console.log("Stato selezionato:", valSelt); // Debug utile in console F12
+
         const oggi = new Date();
         const oggiStr = oggi.toLocaleDateString('sv-SE'); 
 
-        const statoTrovato = listaStatiGlobal.find(s => (s.stato || "").toUpperCase().replace(/\s/g, '') === valSelt);
+        const statoTrovato = listaStatiGlobal.find(s => (s.stato || "").toUpperCase().trim() === valSelt);
         const box = document.getElementById('descrizione-stato-box');
         
         if (statoTrovato) {
@@ -232,33 +233,37 @@
 
             let idCampoBase = "";
 
-            // Ricerca flessibile basata su frammenti di parole chiave
-            if (valSelt.includes("NUOVO") || valSelt.includes("APERTO")) {
+            // LOGICA DI AGGANCIO AI CAMPI (MOLTO PIU' ROBUSTA)
+            if (valSelt.indexOf("NUOVO") !== -1 || valSelt.indexOf("APERTO") !== -1) {
                 idCampoBase = "datanuovo";
-            } else if (valSelt.includes("LAVORAZIONE") || valSelt.includes("CORSO")) {
+            } else if (valSelt.indexOf("LAVORAZIONE") !== -1 || valSelt.indexOf("CORSO") !== -1) {
                 idCampoBase = "datainlavorazione";
-            } else if (valSelt.includes("RISOLTO")) {
+            } else if (valSelt.indexOf("RISOLTO") !== -1) {
                 idCampoBase = "datarisolto";
-            } else if (valSelt.includes("VERIFICATO")) {
+            } else if (valSelt.indexOf("VERIFICATO") !== -1) {
                 idCampoBase = "dataverificato";
-            } else if (valSelt.includes("ACCETTATO") || valSelt.includes("APPROVATO")) {
-                idCampoBase = "dataaccettato";
-            } else if (valSelt.includes("CHIUSO")) {
+            } else if (valSelt.indexOf("ACCETTATO") !== -1 || valSelt.indexOf("APPROVATO") !== -1) {
+                // Se è "Accettato" ma NON è parte di "Non accettato"
+                if (valSelt.indexOf("NON") === -1) {
+                    idCampoBase = "dataaccettato";
+                } else {
+                    idCampoBase = "datarifiutato";
+                }
+            } else if (valSelt.indexOf("CHIUSO") !== -1) {
                 idCampoBase = "datachiuso";
-            } else if (valSelt.includes("RIFIUTATO") || (valSelt.includes("NON") && valSelt.includes("ACCETT"))) {
+            } else if (valSelt.indexOf("RIFIUTATO") !== -1 || (valSelt.indexOf("NON") !== -1 && valSelt.indexOf("ACCETT") !== -1)) {
                 idCampoBase = "datarifiutato";
-            } else if (valSelt.includes("ATTESA") || valSelt.includes("SOSPESO")) {
+            } else if (valSelt.indexOf("ATTESA") !== -1 || valSelt.indexOf("SOSPESO") !== -1) {
                 idCampoBase = "datainattesa";
             }
 
             if (idCampoBase) {
+                console.log("Aggiorno campo:", idCampoBase);
                 const inputData = document.getElementById(idCampoBase);
                 const inputScadenza = document.getElementById(idCampoBase + 's');
                 
-                // Inizializza i campi solo se la data base è attualmente vuota
                 if (!inputData.value) {
                     inputData.value = oggiStr;
-                    
                     let dataScad = new Date(oggi);
                     dataScad.setDate(dataScad.getDate() + giorni);
                     inputScadenza.value = dataScad.toLocaleDateString('sv-SE');
