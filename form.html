@@ -229,15 +229,24 @@
 
             let idCampoBase = "";
 
-            // Logica di abbinamento basata sui tuoi requisiti
-            if (valSelt.includes("NUOVO") || valSelt.includes("APERTO")) idCampoBase = "datanuovo";
-            else if (valSelt.includes("LAVORAZIONE") || valSelt.includes("CORSO")) idCampoBase = "datainlavorazione";
-            else if (valSelt.includes("RISOLTO")) idCampoBase = "datarisolto";
-            else if (valSelt.includes("VERIFICATO")) idCampoBase = "dataverificato";
-            else if (valSelt.includes("ACCETTATO") || valSelt.includes("APPROVATO")) idCampoBase = "dataaccettato";
-            else if (valSelt.includes("CHIUSO")) idCampoBase = "datachiuso";
-            else if (valSelt.includes("RIFIUTATO") || valSelt.includes("NON ACCETTATO")) idCampoBase = "datarifiutato";
-            else if (valSelt.includes("ATTESA") || valSelt.includes("SOSPESO")) idCampoBase = "datainattesa";
+            // Logica di abbinamento basata sui requisiti
+            if (valSelt.includes("NUOVO") || valSelt.includes("APERTO")) {
+                idCampoBase = "datanuovo";
+            } else if (valSelt.includes("LAVORAZIONE") || valSelt.includes("CORSO")) {
+                idCampoBase = "datainlavorazione";
+            } else if (valSelt.includes("RISOLTO")) {
+                idCampoBase = "datarisolto";
+            } else if (valSelt.includes("VERIFICATO")) {
+                idCampoBase = "dataverificato";
+            } else if (valSelt.includes("ACCETTATO") || valSelt.includes("APPROVATO")) {
+                idCampoBase = "dataaccettato";
+            } else if (valSelt.includes("CHIUSO")) {
+                idCampoBase = "datachiuso";
+            } else if (valSelt.includes("RIFIUTATO") || valSelt.includes("NON ACCETTATO") || valSelt.includes("RIFIUT")) {
+                idCampoBase = "datarifiutato";
+            } else if (valSelt.includes("ATTESA") || valSelt.includes("SOSPESO")) {
+                idCampoBase = "datainattesa";
+            }
 
             if (idCampoBase) {
                 const inputData = document.getElementById(idCampoBase);
