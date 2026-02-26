@@ -218,9 +218,8 @@
     function gestisciCambioStato() {
         const valSelt = document.getElementById('stato-select').value;
         const oggi = new Date();
-        const oggiStr = oggi.toISOString().split('T')[0];
+        const oggiStr = oggi.toLocaleDateString('sv-SE'); // Formato YYYY-MM-DD corretto
 
-        // Cerchiamo lo stato ignorando maiuscole/minuscole
         const statoTrovato = listaStatiGlobal.find(s => s.stato.toUpperCase() === valSelt.toUpperCase());
         const box = document.getElementById('descrizione-stato-box');
         
@@ -239,14 +238,15 @@
                 const fieldData = document.getElementById(idCampoBase);
                 const fieldScad = document.getElementById(idCampoBase + 's');
                 
-                // Aggiorniamo solo se il campo è vuoto (nuovo passaggio di stato)
                 if (!fieldData.value) {
                     fieldData.value = oggiStr;
-                    
-                    // Calcolo Scadenza
-                    let dScad = new Date();
+                }
+                
+                // Ricalcola la scadenza basandosi sulla data del campo base
+                if (fieldData.value) {
+                    let dScad = new Date(fieldData.value);
                     dScad.setDate(dScad.getDate() + giorni);
-                    fieldScad.value = dScad.toISOString().split('T')[0];
+                    fieldScad.value = dScad.toLocaleDateString('sv-SE');
                 }
             }
         }
@@ -275,8 +275,8 @@
                 document.getElementById(f + 's').value = data[f + 's'] || '';
             });
             
-            // Richiamiamo per aggiornare il box info blu
-            const stFound = listaStatiGlobal.find(s => s.stato === data.stato);
+            // Aggiorna box info blu
+            const stFound = listaStatiGlobal.find(s => s.stato.toUpperCase() === (data.stato || "").toUpperCase());
             if(stFound) {
                 document.getElementById('descrizione-stato-box').innerHTML = 
                     `<strong>Dettaglio:</strong> ${stFound.descrizione || '...'}<br><strong>Tempo previsto:</strong> ${stFound.gg || 0} gg`;
@@ -288,7 +288,7 @@
         e.preventDefault();
         const id = document.getElementById('ticket-id').value;
         const logAttuale = document.getElementById('logtecnico').value;
-        const nuovaNota = `[${new Date().toLocaleString('it-IT')}] Stato: ${document.getElementById('stato-select').value}\n` + (logAttuale || "");
+        const nuovaNota = `[${new Date().toLocaleString('it-IT')}] Aggiornamento dati\n` + (logAttuale || "");
 
         const payload = {
             titolo: document.getElementById('titolo').value,
@@ -306,14 +306,24 @@
             logtecnico: nuovaNota
         };
 
+        // Caricamento dinamico di tutte le date workflow nel payload
         campiWorkflow.forEach(f => {
             payload[f] = document.getElementById(f).value || null;
             payload[f + 's'] = document.getElementById(f + 's').value || null;
         });
 
-        const res = id ? await _supabase.from('tickets').update(payload).eq('id', id) : await _supabase.from('tickets').insert([payload]);
-        if (!res.error) location.href = 'index.html';
-        else alert("Errore Salvataggio: " + res.error.message);
+        console.log("Salvataggio in corso...", payload);
+
+        const { data, error } = id 
+            ? await _supabase.from('tickets').update(payload).eq('id', id) 
+            : await _supabase.from('tickets').insert([payload]);
+
+        if (!error) {
+            location.href = 'index.html';
+        } else {
+            console.error("Errore Supabase:", error);
+            alert("Errore durante il salvataggio: " + error.message);
+        }
     });
 
     inizializza();
