@@ -149,9 +149,16 @@
         .badge-priorita { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
         .badge-bloccante { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
 
-        /* Icona Scaduto Animata */
-        .expired-icon { color: var(--danger); animation: pulse 1.5s infinite; font-size: 0.9rem; }
-        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
+        /* Icona di scadenza lampeggiante */
+        .alert-expired {
+            color: var(--danger);
+            animation: blinker 1.5s linear infinite;
+            font-size: 1rem;
+        }
+
+        @keyframes blinker {
+            50% { opacity: 0.2; }
+        }
 
         .date-cell { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; background: #f8fafc; padding: 4px 8px; border-radius: 4px; }
         .truncate { max-width: 250px; overflow: hidden; text-overflow: ellipsis; display: inline-block; }
@@ -183,7 +190,7 @@
     </div>
 
     <div class="table-wrapper">
-        <table id="tickets-table">
+        <table>
             <thead>
                 <tr>
                     <th class="sticky-col">ID Ticket</th>
@@ -223,28 +230,32 @@
         return new Date(dateStr).toLocaleDateString('it-IT');
     }
 
-    // Verifica se lo stato attuale è scaduto in base alla data di scadenza corrispondente
-    function isTicketScaduto(t) {
-        const stato = (t.stato || "").toUpperCase();
-        let dataScadenzaStr = null;
+    // NUOVA FUNZIONE PER VERIFICARE LA SCADENZA DINAMICA
+    function verificaScadenza(ticket) {
+        const stato = (ticket.stato || "").toUpperCase();
+        let colonnaScadenza = "";
 
-        if (stato.includes("NUOVO") || stato.includes("APERTO")) dataScadenzaStr = t.datanuovos;
-        else if (stato.includes("LAVORAZIONE") || stato.includes("CORSO")) dataScadenzaStr = t.datainlavoraziones;
-        else if (stato.includes("RISOLTO")) dataScadenzaStr = t.datarisoltos;
-        else if (stato.includes("VERIFICATO")) dataScadenzaStr = t.dataverificatos;
-        else if (stato.includes("ACCETTATO") || stato.includes("APPROVATO")) dataScadenzaStr = t.dataaccettatos;
-        else if (stato.includes("CHIUSO")) dataScadenzaStr = t.datachiusos;
-        else if (stato.includes("RIFIUTATO") || (stato.includes("NON") && stato.includes("ACCETTATO"))) dataScadenzaStr = t.datarifiutatos;
-        else if (stato.includes("ATTESA") || stato.includes("SOSPESO")) dataScadenzaStr = t.datainattesas;
+        // Determiniamo quale colonna di scadenza guardare in base allo stato
+        if (stato.includes("NUOVO") || stato.includes("APERTO")) colonnaScadenza = "datanuovos";
+        else if (stato.includes("LAVORAZIONE") || stato.includes("CORSO")) colonnaScadenza = "datainlavoraziones";
+        else if (stato.includes("RISOLTO")) colonnaScadenza = "datarisoltos";
+        else if (stato.includes("VERIFICATO")) colonnaScadenza = "dataverificatos";
+        else if (stato.includes("ACCETTATO") || stato.includes("APPROVATO")) colonnaScadenza = "dataaccettatos";
+        else if (stato.includes("CHIUSO")) colonnaScadenza = "datachiusos";
+        else if (stato.includes("RIFIUTATO") || (stato.includes("NON") && stato.includes("ACCETT"))) colonnaScadenza = "datarifiutatos";
+        else if (stato.includes("ATTESA") || stato.includes("SOSPESO")) colonnaScadenza = "datainattesas";
 
-        if (!dataScadenzaStr) return false;
+        const dataLimiteStr = ticket[colonnaScadenza];
+        if (!dataLimiteStr) return false;
 
+        const dataLimite = new Date(dataLimiteStr);
         const oggi = new Date();
-        oggi.setHours(0, 0, 0, 0);
-        const scadenza = new Date(dataScadenzaStr);
-        scadenza.setHours(0, 0, 0, 0);
+        
+        // Confronto solo le date (senza ore)
+        dataLimite.setHours(0,0,0,0);
+        oggi.setHours(0,0,0,0);
 
-        return oggi > scadenza;
+        return oggi > dataLimite;
     }
 
     function popolaFiltri(data) {
@@ -292,7 +303,7 @@
         const tbody = document.getElementById('lista-body');
         tbody.innerHTML = data.map(t => {
             const isB = t.bloccante === true || t.bloccante === "true" || t.bloccante === 1;
-            const scaduto = isTicketScaduto(t);
+            const isExpired = verificaScadenza(t); // CONTROLLO SCADENZA
             
             let prioClass = '';
             const p = (t.priorita || '').toUpperCase();
@@ -309,7 +320,7 @@
                 <td>
                     <span class="badge badge-stato">
                         ${t.stato || '-'}
-                        ${scaduto ? '<i class="fas fa-circle-exclamation expired-icon" title="SCADUTO!"></i>' : ''}
+                        ${isExpired ? '<i class="fas fa-clock alert-expired" title="ATTENZIONE: Ticket Scaduto per questo stato!"></i>' : ''}
                     </span>
                 </td>
                 <td><span class="badge badge-tipo">${t.tipo || '-'}</span></td>
@@ -342,8 +353,8 @@
 
     async function eliminaRecord(id) {
         if (confirm("Eliminare ticket #" + id + "?")) {
-            const { error } = await _supabase.from('tickets').delete().eq('id', id);
-            if(!error) caricaDati();
+            await _supabase.from('tickets').delete().eq('id', id);
+            caricaDati();
         }
     }
 
