@@ -3,79 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestione Tickets - Lista Completa</title>
+    <title>Gestione Tickets - Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; line-height: 1.6; background-color: #f8f9fa; }
-        .container { max-width: 1800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1 { color: #2c3e50; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
-        th, td { border-bottom: 1px solid #eee; padding: 10px 8px; text-align: left; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        th { background-color: #f4f4f4; color: #333; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px; }
-        
-        /* Larghezze specifiche per colonne critiche */
-        .col-id { width: 60px; }
-        .col-date { width: 90px; }
-        .col-badge { width: 100px; }
-        .col-text { width: 150px; } /* Titolo e descrizioni */
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f4f7f6;
+            --white: #ffffff;
+        }
 
-        /* Riga cliccabile */
-        tr.clickable-row { cursor: pointer; transition: background-color 0.2s; }
-        tr.clickable-row:hover { background-color: #f1f7ff !important; }
-        
-        .btn { padding: 8px 15px; cursor: pointer; border: none; border-radius: 4px; text-decoration: none; display: inline-block; font-size: 0.9rem; transition: 0.3s; }
-        .btn-add { background-color: #2ecc71; color: white; margin-bottom: 20px; }
-        .btn-add:hover { background-color: #27ae60; }
-        
-        .badge { padding: 3px 7px; border-radius: 10px; font-size: 0.65rem; font-weight: bold; background: #dfe6e9; color: #636e72; display: inline-block; }
-        .badge-tipo { background: #e8f4fd; color: #3498db; border: 1px solid #3498db; }
-        .badge-priorita { background: #fff3e0; color: #e67e22; border: 1px solid #e67e22; }
-        .badge-bloccante { background: #ffebee; color: #c0392b; border: 1px solid #c0392b; }
-        .badge-no { background: #f1f2f6; color: #747d8c; border: 1px solid #a4b0be; }
-        
-        .date-cell { font-family: monospace; font-size: 0.75rem; color: #555; }
-        .truncate { max-width: 100%; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .truncate:hover { white-space: normal; overflow: visible; position: relative; background: white; z-index: 10; border: 1px solid #ddd; padding: 2px; }
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background-color: var(--bg-color); 
+            color: #333;
+        }
 
-        .delete-trigger { color: #bdc3c7; cursor: pointer; margin-left: 5px; font-size: 0.75rem; }
+        .container { 
+            max-width: 100%; 
+            margin: auto; 
+            background: var(--white); 
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 30px rgba(0,0,0,0.05); 
+        }
+
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+        }
+
+        h1 { color: var(--primary-color); margin: 0; font-size: 1.8rem; }
+
+        /* Barra degli strumenti e Filtri */
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn { 
+            padding: 10px 18px; 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 6px; 
+            text-decoration: none; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 8px;
+            font-size: 0.9rem; 
+            font-weight: 500;
+            transition: all 0.2s; 
+        }
+
+        .btn-add { background-color: #27ae60; color: white; }
+        .btn-add:hover { background-color: #219150; transform: translateY(-1px); }
+
+        /* Wrapper per scorrimento tabella */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            background: white;
+            min-width: 1600px; /* Garantisce che le 16 colonne non si schiaccino */
+        }
+
+        th { 
+            background-color: #f8f9fa; 
+            color: var(--primary-color); 
+            text-transform: uppercase; 
+            font-size: 0.7rem; 
+            font-weight: 700;
+            letter-spacing: 0.5px; 
+            padding: 15px 10px;
+            border-bottom: 2px solid #dee2e6;
+            text-align: left;
+        }
+
+        td { 
+            padding: 12px 10px; 
+            border-bottom: 1px solid #eee; 
+            font-size: 0.85rem;
+            color: #444;
+        }
+
+        /* Effetti riga */
+        tr.clickable-row { cursor: pointer; }
+        tr.clickable-row:nth-child(even) { background-color: #fafafa; }
+        tr.clickable-row:hover { background-color: #f0f7ff !important; }
+
+        /* Badge Styling */
+        .badge { 
+            padding: 4px 10px; 
+            border-radius: 20px; 
+            font-size: 0.7rem; 
+            font-weight: 600; 
+            display: inline-block;
+            text-align: center;
+            min-width: 70px;
+        }
+        .badge-tipo { background: #e1f5fe; color: #0288d1; }
+        .badge-priorita { background: #fff3e0; color: #ef6c00; }
+        .badge-bloccante { background: #ffebee; color: #c62828; animation: pulse 2s infinite; }
+        .badge-no { background: #f5f5f5; color: #757575; }
+        .badge-default { background: #eceff1; color: #455a64; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        /* Utility */
+        .date-cell { font-family: 'Courier New', monospace; font-weight: 600; color: #666; }
+        .truncate { 
+            max-width: 180px; 
+            display: block; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            white-space: nowrap; 
+        }
+        
+        .delete-trigger { 
+            color: #ccc; 
+            padding: 5px;
+            transition: color 0.2s;
+        }
         .delete-trigger:hover { color: #e74c3c; }
+
+        .id-cell {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Elenco Tickets</h1>
-    <a href="form.html" class="btn btn-add"><i class="fas fa-plus"></i> Nuovo Ticket</a>
-    
-    <div id="status-msg"></div>
+    <div class="header-section">
+        <h1><i class="fas fa-ticket-alt"></i> Gestione Tickets</h1>
+        <a href="form.html" class="btn btn-add"><i class="fas fa-plus"></i> Nuovo Ticket</a>
+    </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th class="col-id">N. Ticket</th>
-                <th class="col-badge">Stato</th>
-                <th class="col-badge">Tipo</th>
-                <th class="col-badge">Bloccante</th>
-                <th class="col-badge">Priorità</th>
-                <th class="col-date">Ins. il</th>
-                <th>Ambito</th>
-                <th>Menu</th>
-                <th class="col-text">Titolo</th>
-                <th class="col-text">Descrizione</th>
-                <th>Inserito da</th>
-                <th>In carico a</th>
-                <th class="col-date">Inizio Prev.</th>
-                <th class="col-date">Fine Prev.</th>
-                <th class="col-date">Rilascio</th>
-                <th class="col-text">Descrizione Attività</th>
-            </tr>
-        </thead>
-        <tbody id="lista-body">
-            <tr><td colspan="16">Caricamento in corso...</td></tr>
-        </tbody>
-    </table>
+    <div class="toolbar">
+        <div id="status-msg"></div>
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 80px;">N. Ticket</th>
+                    <th style="width: 100px;">Stato</th>
+                    <th style="width: 110px;">Tipo</th>
+                    <th style="width: 90px;">Bloccante</th>
+                    <th style="width: 100px;">Priorità</th>
+                    <th style="width: 100px;">Ins. il</th>
+                    <th>Ambito</th>
+                    <th>Menu</th>
+                    <th>Titolo</th>
+                    <th>Descrizione</th>
+                    <th>Inserito da</th>
+                    <th>In carico a</th>
+                    <th style="width: 100px;">Inizio Prev.</th>
+                    <th style="width: 100px;">Fine Prev.</th>
+                    <th style="width: 100px;">Rilascio</th>
+                    <th>Attività Tecnica</th>
+                </tr>
+            </thead>
+            <tbody id="lista-body">
+                <tr><td colspan="16" style="text-align:center; padding: 40px;">Caricamento dati in corso...</td></tr>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script>
@@ -87,10 +203,7 @@
         if (!dateStr) return '-';
         const date = new Date(dateStr);
         if (isNaN(date.getTime())) return '-';
-        const d = String(date.getDate()).padStart(2, '0');
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const y = date.getFullYear();
-        return `${d}/${m}/${y}`;
+        return date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
     }
 
     async function caricaDati() {
@@ -106,7 +219,7 @@
             if (error) throw error;
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="16">Nessun ticket trovato.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="16" style="text-align:center; padding: 40px;">Nessun ticket presente nel database.</td></tr>';
                 return;
             }
 
@@ -117,25 +230,27 @@
                 return `
                 <tr class="clickable-row" onclick="location.href='form.html?id=${ticket.id}'">
                     <td>
-                        #${ticket.id}
-                        <i class="fas fa-trash delete-trigger" title="Elimina" 
-                           onclick="event.stopPropagation(); eliminaRecord(${ticket.id})"></i>
+                        <div class="id-cell">
+                            #${ticket.id}
+                            <i class="fas fa-trash-alt delete-trigger" title="Elimina" 
+                               onclick="event.stopPropagation(); eliminaRecord(${ticket.id})"></i>
+                        </div>
                     </td>
-                    <td><span class="badge">${ticket.stato || 'N.D.'}</span></td>
+                    <td><span class="badge badge-default">${ticket.stato || 'APERT'}</span></td>
                     <td><span class="badge badge-tipo">${ticket.tipo || '-'}</span></td>
                     <td>
                         <span class="badge ${isBloccante ? 'badge-bloccante' : 'badge-no'}">
-                            ${isBloccante ? 'SÌ' : 'NO'}
+                            ${isBloccante ? '<i class="fas fa-exclamation-triangle"></i> SÌ' : 'NO'}
                         </span>
                     </td>
                     <td><span class="badge badge-priorita">${ticket.priorita || '-'}</span></td>
                     <td class="date-cell">${formattaData(dataInserimentoRaw)}</td>
                     <td>${ticket.ambito || '-'}</td>
                     <td>${ticket.menu || '-'}</td>
-                    <td><span class="truncate" title="${ticket.titolo || ''}"><strong>${ticket.titolo || 'Senza titolo'}</strong></span></td>
+                    <td><span class="truncate" title="${ticket.titolo || ''}"><strong>${ticket.titolo || '-'}</strong></span></td>
                     <td><span class="truncate" title="${ticket.descrizione || ''}">${ticket.descrizione || '-'}</span></td>
-                    <td>${ticket.inserito_da || 'Sistema'}</td>
-                    <td><strong>${ticket.incarico || '-'}</strong></td>
+                    <td>${ticket.inserito_da || 'Admin'}</td>
+                    <td><i class="fas fa-user-circle"></i> ${ticket.incarico || 'Da assegnare'}</td>
                     <td class="date-cell">${formattaData(ticket.inizioprevisto)}</td>
                     <td class="date-cell">${formattaData(ticket.fineprevista)}</td>
                     <td class="date-cell">${formattaData(ticket.datarilascio)}</td>
@@ -146,15 +261,14 @@
 
         } catch (err) {
             console.error("Errore:", err);
-            statusMsg.innerHTML = `<p style="color:red"><b>Errore:</b> ${err.message}</p>`;
-            tbody.innerHTML = '<tr><td colspan="16" style="color:red">Errore nel caricamento.</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="16" style="text-align:center; color:red; padding: 40px;">Errore nel caricamento: ${err.message}</td></tr>`;
         }
     }
 
     async function eliminaRecord(id) {
-        if (!confirm("Sei sicuro di voler eliminare questo ticket?")) return;
+        if (!confirm("ATTENZIONE: Stai per eliminare definitivamente il ticket #" + id + ". Procedere?")) return;
         const { error } = await _supabase.from('tickets').delete().eq('id', id);
-        if (error) alert("Errore: " + error.message);
+        if (error) alert("Errore durante l'eliminazione: " + error.message);
         else caricaDati();
     }
 
