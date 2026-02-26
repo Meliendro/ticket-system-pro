@@ -46,7 +46,7 @@
             font-size: 14px; background: white; outline: none;
         }
         input:focus, select:focus, textarea:focus { border-color: var(--accent-blue); box-shadow: 0 0 5px rgba(59,130,246,0.2); }
-        input[readonly] { background-color: #f1f5f9; cursor: not-allowed; color: #64748b; }
+        input[readonly], textarea[readonly] { background-color: #f1f5f9; cursor: not-allowed; color: #64748b; }
 
         .info-box { 
             background-color: var(--info-bg); border-radius: 8px; padding: 12px; 
@@ -55,18 +55,24 @@
 
         .full-width { margin-bottom: 20px; }
         textarea { height: 100px; resize: vertical; }
-        #logtecnico { font-family: 'Courier New', monospace; font-size: 13px; background-color: #fcfcfc; color: #555; }
+        #logtecnico { font-family: 'Courier New', monospace; font-size: 13px; background-color: #fcfcfc; color: #555; height: 150px; }
 
         .footer-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px; }
         .btn { padding: 12px 30px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; text-transform: uppercase; transition: 0.3s; }
         .btn-save { background: var(--accent-blue); color: white; }
         .btn-save:hover { background: #2563eb; }
         .btn-cancel { background: #cbd5e1; color: #475569; }
+        
+        /* Stile speciale per opzione Annullato */
+        option.opt-annullato { color: var(--danger); font-weight: bold; }
+        .annullato-warning { background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; text-align: center; display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <div id="msg-annullato" class="annullato-warning">TICKET ANNULLATO - MODIFICA DISABILITATA</div>
+    
     <div class="header-top">
         <h1 id="titolo-header">Caricamento...</h1>
         <div class="tkn-badge">TKN: <span id="tkn-id">--</span></div>
@@ -162,8 +168,8 @@
         </div>
 
         <div class="footer-actions">
-            <button type="button" class="btn btn-cancel" onclick="location.href='index.html'">Annulla</button>
-            <button type="submit" class="btn btn-save">Salva Modifiche</button>
+            <button type="button" class="btn btn-cancel" onclick="location.href='index.html'">Torna alla Lista</button>
+            <button type="submit" id="btn-salva" class="btn btn-save">Salva Modifiche</button>
         </div>
     </form>
 </div>
@@ -210,8 +216,13 @@
     function popolaSelect(id, response, column, placeholder) {
         const select = document.getElementById(id);
         if (response.data) {
-            select.innerHTML = `<option value="" selected disabled>-- ${placeholder} --</option>` + 
-                response.data.map(i => `<option value="${i[column]}">${i[column]}</option>`).join('');
+            let options = `<option value="" selected disabled>-- ${placeholder} --</option>`;
+            response.data.forEach(i => {
+                const val = i[column];
+                const isAnnullato = (val === 'Annullato' || val === 'ANNULLATO');
+                options += `<option value="${val}" class="${isAnnullato ? 'opt-annullato' : ''}">${val}</option>`;
+            });
+            select.innerHTML = options;
         }
     }
 
@@ -231,31 +242,18 @@
 
             let idCampoBase = "";
 
-            // LOGICA DI AGGANCIO AI CAMPI
-            if (valSelt.includes("NUOVO") || valSelt.includes("APERTO")) {
-                idCampoBase = "datanuovo";
-            } else if (valSelt.includes("LAVORAZIONE") || valSelt.includes("CORSO")) {
-                idCampoBase = "datainlavorazione";
-            } else if (valSelt.includes("RISOLTO")) {
-                idCampoBase = "datarisolto";
-            } else if (valSelt.includes("VERIFICATO")) {
-                idCampoBase = "dataverificato";
-            } else if (valSelt.includes("RIFIUTATO") || (valSelt.includes("NON") && valSelt.includes("ACCETTATO"))) {
-                // Priorità al Rifiutato prima dell'accettato
-                idCampoBase = "datarifiutato";
-            } else if (valSelt.includes("ACCETTATO") || valSelt.includes("APPROVATO")) {
-                idCampoBase = "dataaccettato";
-            } else if (valSelt.includes("CHIUSO")) {
-                idCampoBase = "datachiuso";
-            } else if (valSelt.includes("ATTESA") || valSelt.includes("SOSPESO")) {
-                idCampoBase = "datainattesa";
-            }
+            if (valSelt.includes("NUOVO") || valSelt.includes("APERTO")) idCampoBase = "datanuovo";
+            else if (valSelt.includes("LAVORAZIONE") || valSelt.includes("CORSO")) idCampoBase = "datainlavorazione";
+            else if (valSelt.includes("RISOLTO")) idCampoBase = "datarisolto";
+            else if (valSelt.includes("VERIFICATO")) idCampoBase = "dataverificato";
+            else if (valSelt.includes("RIFIUTATO") || (valSelt.includes("NON") && valSelt.includes("ACCETTATO"))) idCampoBase = "datarifiutato";
+            else if (valSelt.includes("ACCETTATO") || valSelt.includes("APPROVATO")) idCampoBase = "dataaccettato";
+            else if (valSelt.includes("CHIUSO")) idCampoBase = "datachiuso";
+            else if (valSelt.includes("ATTESA") || valSelt.includes("SOSPESO")) idCampoBase = "datainattesa";
 
             if (idCampoBase) {
                 const inputData = document.getElementById(idCampoBase);
                 const inputScadenza = document.getElementById(idCampoBase + 's');
-                
-                // Popola solo se vuoto
                 if (inputData && !inputData.value) {
                     inputData.value = oggiStr;
                     let dataScad = new Date(oggi);
@@ -291,6 +289,11 @@
                 if (fScad) fScad.value = data[f + 's'] || '';
             });
 
+            // GESTIONE TICKET ANNULLATO
+            if(data.stato && data.stato.toUpperCase() === 'ANNULLATO') {
+                disabilitaTutto();
+            }
+
             const stFound = listaStatiGlobal.find(s => s.stato === data.stato);
             if(stFound) {
                 document.getElementById('descrizione-stato-box').innerHTML = 
@@ -299,18 +302,33 @@
         }
     }
 
+    function disabilitaTutto() {
+        document.getElementById('msg-annullato').style.display = 'block';
+        const inputs = document.querySelectorAll('input, select, textarea');
+        inputs.forEach(el => el.disabled = true);
+        document.getElementById('btn-salva').style.display = 'none';
+    }
+
     document.getElementById('form-ticket').addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = document.getElementById('ticket-id').value;
         const oraAttuale = new Date().toLocaleString('it-IT');
         let logAttuale = document.getElementById('logtecnico').value;
-        const nuovaNota = `[${oraAttuale}] Stato: ${document.getElementById('stato-select').value}\n`;
-        logAttuale = nuovaNota + (logAttuale || "");
+        
+        const nuovoStato = document.getElementById('stato-select').value;
+        let notaLog = `[${oraAttuale}] Stato: ${nuovoStato}\n`;
+        
+        // Log speciale per annullamento
+        if(nuovoStato.toUpperCase() === 'ANNULLATO') {
+            notaLog = `[${oraAttuale}] *** TICKET ANNULLATO (Data Annullamento: ${new Date().toLocaleDateString('it-IT')}) ***\n` + notaLog;
+        }
+
+        logAttuale = notaLog + (logAttuale || "");
 
         const payload = {
             titolo: document.getElementById('titolo').value,
             descrizione: document.getElementById('descrizione').value,
-            stato: document.getElementById('stato-select').value,
+            stato: nuovoStato,
             tipo: document.getElementById('tipo-select').value,
             priorita: document.getElementById('priorita-select').value,
             ambito: document.getElementById('ambito-select').value,
