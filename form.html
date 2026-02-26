@@ -228,9 +228,14 @@
             box.innerHTML = `<strong>Dettaglio:</strong> ${statoTrovato.descrizione || '...'}<br><strong>Tempo limite:</strong> ${giorni} gg`;
 
             const mappaStati = {
-                'NUOVO': 'datanuovo', 'IN LAVORAZIONE': 'datainlavorazione', 'RISOLTO': 'datarisolto', 
-                'VERIFICATO': 'dataverificato', 'ACCETTATO': 'dataaccettato', 'CHIUSO': 'datachiuso', 
-                'RIFIUTATO': 'datarifiutato', 'IN ATTESA': 'datainattesa'
+                'NUOVO': 'datanuovo',
+                'IN LAVORAZIONE': 'datainlavorazione',
+                'RISOLTO': 'datarisolto',
+                'VERIFICATO': 'dataverificato',
+                'ACCETTATO': 'dataaccettato',
+                'CHIUSO': 'datachiuso',
+                'RIFIUTATO': 'datarifiutato',
+                'IN ATTESA': 'datainattesa'
             };
 
             const idCampoBase = mappaStati[valSelt.toUpperCase()];
@@ -238,7 +243,7 @@
                 const inputData = document.getElementById(idCampoBase);
                 const inputScadenza = document.getElementById(idCampoBase + 's');
                 
-                // Aggiorna data base e calcola scadenza solo se il campo data base è vuoto
+                // Inizializza i campi se la data base è vuota
                 if (!inputData.value) {
                     inputData.value = oggiStr;
                     
