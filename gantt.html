@@ -43,25 +43,45 @@
     
     const DAY_PX = 40; // Larghezza in pixel per ogni giorno
 
-    async function loadGantt() {
-        const content = document.getElementById('gantt-content');
-        const header = document.getElementById('timeline-header');
-        content.innerHTML = '<div class="p-4">Caricamento...</div>';
-        header.innerHTML = '';
+async function loadGantt() {
+    const content = document.getElementById('gantt-content');
+    const header = document.getElementById('timeline-header');
+    
+    // Mostriamo un messaggio di caricamento
+    content.innerHTML = '<div class="p-4 text-slate-500">Tentativo di connessione a Supabase...</div>';
+    header.innerHTML = '';
 
+    try {
         // Recuperiamo i dati
         const { data: tickets, error } = await supabase
-            .from('ticket') // Assicurati che il nome tabella sia corretto
-            .select('*')
-            .order('datainserimento', { ascending: false });
+            .from('ticket') // <--- VERIFICA CHE QUESTO NOME SIA ESATTO
+            .select('*');
 
         if (error) {
-            content.innerHTML = `<div class="p-4 text-red-500">Errore: ${error.message}</div>`;
+            content.innerHTML = `<div class="p-4 bg-red-100 text-red-700 rounded m-4">
+                <strong>Errore Supabase:</strong> ${error.message}
+            </div>`;
+            console.error("Errore completo:", error);
             return;
         }
 
+        console.log("Dati ricevuti:", tickets);
+
+        if (tickets.length === 0) {
+            content.innerHTML = '<div class="p-4 text-slate-500">La tabella è connessa, ma è vuota. Inserisci dei ticket su Supabase.</div>';
+            return;
+        }
+
+        // Se arriviamo qui, i dati ci sono
         render(tickets);
+
+    } catch (e) {
+        content.innerHTML = `<div class="p-4 bg-red-100 text-red-700 rounded m-4">
+            <strong>Errore imprevisto:</strong> ${e.message}
+        </div>`;
+        console.error(e);
     }
+}
 
     function render(tickets) {
         const header = document.getElementById('timeline-header');
