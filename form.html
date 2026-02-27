@@ -185,7 +185,19 @@
 
     const workflowFields = ['datanuovo', 'datainlavorazione', 'datarisolto', 'dataverificato', 'dataaccettato', 'datachiuso', 'datarifiutato', 'datainattesa'];
 
+    // --- AGGIUNTO: CONTROLLO ACCESSO ---
+    async function checkUser() {
+        const { data: { user } } = await _supabase.auth.getUser();
+        if (!user) {
+            window.location.href = 'login.html';
+        }
+        return user;
+    }
+
     async function inizializza() {
+        // Verifica se l'utente è loggato prima di procedere
+        await checkUser();
+
         try {
             const [resStati, resTipi, resPriorita, resAmbiti, resMenu] = await Promise.all([
                 _supabase.from('stato').select('*').order('id', { ascending: true }),
@@ -339,17 +351,23 @@
         document.getElementById('btn-salva').style.display = 'none';
     }
 
+    // --- AGGIUNTO: LOGICA INVIO FORM CON UTENTE ---
     document.getElementById('form-ticket').addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        // Ottieni l'utente attuale
+        const user = await checkUser();
+        if (!user) return; // Se non loggato, interrompi
+
         const id = document.getElementById('ticket-id').value;
         const oraAttuale = new Date().toLocaleString('it-IT');
         let logAttuale = document.getElementById('logtecnico').value;
         
         const nuovoStato = document.getElementById('stato-select').value;
-        let notaLog = `[${oraAttuale}] Stato: ${nuovoStato}\n`;
+        let notaLog = `[${oraAttuale}] Stato: ${nuovoStato} (da: ${user.email})\n`;
         
         if(nuovoStato.toUpperCase() === 'ANNULLATO') {
-            notaLog = `[${oraAttuale}] *** TICKET ANNULLATO (Data Annullamento: ${new Date().toLocaleDateString('it-IT')}) ***\n` + notaLog;
+            notaLog = `[${oraAttuale}] *** TICKET ANNULLATO (Data Annullamento: ${new Date().toLocaleDateString('it-IT')}) da: ${user.email} ***\n` + notaLog;
         }
 
         logAttuale = notaLog + (logAttuale || "");
@@ -367,8 +385,15 @@
             inizioprevisto: document.getElementById('inizioprevisto').value || null,
             fineprevista: document.getElementById('fineprevista').value || null,
             datarilascio: document.getElementById('datarilascio').value || null,
-            logtecnico: logAttuale
+            logtecnico: logAttuale,
+            // --- AGGIUNTO: TRACCIAMENTO UTENTE ---
+            updated_by: user.id
         };
+
+        // Se è un nuovo ticket, imposta creato da
+        if (!id) {
+            payload.created_by = user.id;
+        }
 
         workflowFields.forEach(f => {
             payload[f] = document.getElementById(f).value || null;
