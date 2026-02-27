@@ -3,163 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gantt Operativo 2026 | Supabase</title>
+    <title>Gantt Operativo Ticket | 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        sb: {
-                            new: '#3b82f6', // blue
-                            work: '#f59e0b', // amber
-                            done: '#10b981', // emerald
-                            delay: '#ef4444' // red
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     <style>
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; }
-        .glass-card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-        .gantt-row { height: 50px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; position: relative; }
-        .gantt-row:hover { background-color: #f8fafc; }
-        .sidebar-item { width: 250px; flex-shrink: 0; padding: 0 15px; border-right: 1px solid #e2e8f0; }
-        .viewport { flex-grow: 1; overflow-x: auto; position: relative; height: 100%; }
-        .timeline-header { display: flex; border-bottom: 2px solid #e2e8f0; background: white; }
-        .day-cell { min-width: 40px; text-align: center; font-size: 11px; padding: 8px 0; border-right: 1px solid #f1f5f9; }
-        .bar-container { position: absolute; height: 24px; display: flex; left: 0; top: 13px; }
-        .bar-segment { height: 100%; cursor: pointer; transition: all 0.2s; position: relative;}
-        .bar-segment:hover { opacity: 0.8; transform: scaleY(1.1); }
-        .bar-segment span { position: absolute; bottom: -18px; left: 5px; font-size: 9px; color: #64748b; white-space: nowrap; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f4f8; }
+        .gantt-container { overflow-x: auto; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .row-height { height: 48px; }
+        .bar { position: absolute; height: 24px; top: 12px; border-radius: 12px; }
+        .bar-label { font-size: 10px; color: white; padding: 4px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .no-data-bar { background-color: #cbd5e1; height: 24px; border-radius: 12px; display: flex; align-items: center; padding: 0 10px; font-size: 12px; color: #475569; }
+        .timeline-cell { min-width: 40px; text-align: center; font-size: 10px; color: #64748b; border-right: 1px solid #e2e8f0; padding: 8px 0; }
+        .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(239, 68, 68, 0.7); z-index: 10; }
     </style>
 </head>
-<body class="p-6">
+<body class="p-4 md:p-6">
 
-<div class="max-w-[1600px] mx-auto">
+<div class="max-w-[1800px] mx-auto">
     <div class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-3xl font-bold text-slate-900">Project <span class="text-blue-600">Gantt</span></h1>
-            <p class="text-slate-500">Analisi operativa stati ticket</p>
-        </div>
-        <button onclick="loadData()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700">
-            Aggiorna Dati
+        <h1 class="text-2xl font-bold text-slate-950">Pianificazione Gantt <span class="text-blue-600">Ticket</span></h1>
+        <button onclick="loadGantt()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition">
+            Aggiorna
         </button>
     </div>
 
-    <div class="glass-card overflow-hidden">
-        <div class="flex">
-            <div class="border-r border-slate-200">
-                <div class="h-10 flex items-center px-4 font-bold text-xs text-slate-500 uppercase tracking-wider">Ticket</div>
-                <div id="sidebar-content"></div>
-            </div>
-
-            <div class="viewport" id="viewport">
-                <div class="timeline-header" id="timeline-header"></div>
-                <div id="gantt-body" class="relative"></div>
-            </div>
-        </div>
+    <div class="gantt-container" id="gantt-viewport">
+        <div id="timeline-header" class="flex border-b border-slate-200 bg-slate-50 sticky top-0 z-20"></div>
+        
+        <div id="gantt-content" class="relative"></div>
     </div>
 </div>
 
 <script>
+    // --- CONFIGURA SUPABASE ---
     const SB_URL = 'https://tdpmdloicnfqyixlxweh.supabase.co'; 
-    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg'; 
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg
+';
     const supabase = supabase.createClient(SB_URL, SB_KEY);
-    const DAY_PX = 40;
+    
+    const DAY_PX = 40; // Larghezza in pixel per ogni giorno
 
-    async function loadData() {
+    async function loadGantt() {
+        const content = document.getElementById('gantt-content');
+        const header = document.getElementById('timeline-header');
+        content.innerHTML = '<div class="p-4">Caricamento...</div>';
+        header.innerHTML = '';
+
+        // Recuperiamo i dati
         const { data: tickets, error } = await supabase
-            .from('tickets')
+            .from('ticket') // Assicurati che il nome tabella sia corretto
             .select('*')
-            .order('datanuovo', { ascending: false });
+            .order('datainserimento', { ascending: false });
 
-        if (error) return alert("Errore Supabase");
-        renderGantt(tickets);
+        if (error) {
+            content.innerHTML = `<div class="p-4 text-red-500">Errore: ${error.message}</div>`;
+            return;
+        }
+
+        render(tickets);
     }
 
-    function parseDate(d) { return d ? new Date(d) : null; }
-
-    function renderGantt(tickets) {
-        const sidebar = document.getElementById('sidebar-content');
+    function render(tickets) {
         const header = document.getElementById('timeline-header');
-        const body = document.getElementById('gantt-body');
-        
-        sidebar.innerHTML = ""; header.innerHTML = ""; body.innerHTML = "";
+        const content = document.getElementById('gantt-content');
+        content.innerHTML = '';
 
-        // Calcolo Range (dal più vecchio al presente + 10 giorni)
-        const allStartDates = tickets.map(t => parseDate(t.datanuovo)).filter(d => d);
-        if (allStartDates.length === 0) return;
+        if (tickets.length === 0) {
+            content.innerHTML = '<div class="p-4">Nessun ticket trovato.</div>';
+            return;
+        }
+
+        // 1. Calcolo range temporale (min data inserimento - 2 giorni, max oggi + 30 giorni)
+        const validDates = tickets.map(t => new Date(t.datainserimento)).filter(d => !isNaN(d));
+        if (validDates.length === 0) validDates.push(new Date());
         
-        const minDate = new Date(Math.min(...allStartDates));
-        minDate.setDate(minDate.getDate() - 3);
+        const minDate = new Date(Math.min(...validDates));
+        minDate.setDate(minDate.getDate() - 2);
+        
         const maxDate = new Date();
-        maxDate.setDate(maxDate.getDate() + 10);
+        maxDate.setDate(maxDate.getDate() + 30);
+        
         const totalDays = Math.ceil((maxDate - minDate) / (1000*60*60*24));
 
-        // Render Header
-        for(let i=0; i<totalDays; i++) {
-            const d = new Date(minDate); d.setDate(d.getDate() + i);
-            const isToday = d.toDateString() === new Date().toDateString();
-            header.innerHTML += `<div class="day-cell ${isToday ? 'bg-red-50 text-red-600 font-bold' : ''}">${d.getDate()}</div>`;
+        // 2. Render Timeline Header
+        let timelineHtml = `<div style="min-width: 250px" class="border-r border-slate-200"></div>`; // Spazio per titolo
+        for (let i = 0; i < totalDays; i++) {
+            let d = new Date(minDate);
+            d.setDate(d.getDate() + i);
+            timelineHtml += `<div class="timeline-cell">${d.getDate()}/${d.getMonth()+1}</div>`;
         }
-        header.style.width = `${totalDays * DAY_PX}px`;
+        header.innerHTML = timelineHtml;
+        header.style.width = `${250 + (totalDays * DAY_PX)}px`;
 
-        // Render Rows
+        // 3. Render Righe Ticket
         tickets.forEach(t => {
-            // Sidebar
-            sidebar.innerHTML += `
-                <div class="gantt-row sidebar-item">
-                    <div class="font-bold text-sm text-slate-900">#${t.id}</div>
-                    <div class="text-xs text-slate-500 truncate">${t.titolo}</div>
+            const row = document.createElement('div');
+            row.className = "flex border-b border-slate-100 row-height relative";
+            row.style.width = `${250 + (totalDays * DAY_PX)}px`;
+
+            // Titolo e ID
+            row.innerHTML = `
+                <div style="min-width: 250px" class="flex items-center px-4 border-r border-slate-100 bg-white z-10 sticky left-0">
+                    <div>
+                        <div class="font-bold text-sm text-slate-900">#${t.id} - ${t.titolo || 'Senza Titolo'}</div>
+                        <div class="text-xs text-slate-500">${t.stato || 'Nuovo'}</div>
+                    </div>
                 </div>
+                <div class="flex-grow relative" id="row-bar-${t.id}"></div>
             `;
+            content.appendChild(row);
 
-            // Row Body
-            const rowBody = document.createElement('div');
-            rowBody.className = "gantt-row relative";
-            rowBody.style.width = `${totalDays * DAY_PX}px`;
-
-            // Calcolo segmenti barra
-            const barContainer = document.createElement('div');
-            barContainer.className = "bar-container";
-
-            const segments = [
-                { date: parseDate(t.datanuovo), color: 'bg-sb-new', label: 'Nuovo' },
-                { date: parseDate(t.datainlavorazione), color: 'bg-sb-work', label: 'Lavoro' },
-                { date: parseDate(t.datarisolto), color: 'bg-sb-done', label: 'Risolto' }
-            ].filter(s => s.date);
-
-            segments.sort((a,b) => a.date - b.date);
-
-            for(let i=0; i<segments.length; i++) {
-                const segStart = segments[i].date;
-                const segEnd = (i < segments.length -1) ? segments[i+1].date : new Date();
+            // Calcolo Barre
+            const barContainer = document.getElementById(`row-bar-${t.id}`);
+            
+            // Verifichiamo se ci sono date per la pianificazione
+            if (t.datainizioprevista && t.datafineprevista) {
+                const start = new Date(t.datainizioprevista);
+                const end = new Date(t.datafineprevista);
                 
-                // Se il ticket è chiuso, la barra finisce alla data di chiusura
-                const finalEnd = (t.datachiuso && parseDate(t.datachiuso) < segEnd) ? parseDate(t.datachiuso) : segEnd;
+                const startOffset = Math.floor((start - minDate) / (1000*60*60*24));
+                const duration = Math.ceil((end - start) / (1000*60*60*24));
                 
-                const duration = Math.max(1, Math.ceil((finalEnd - segStart) / (1000*60*60*24)));
-                const left = Math.floor((segStart - minDate) / (1000*60*60*24)) * DAY_PX;
+                let bgColor = "bg-blue-500";
+                if (t.stato === "Completato") bgColor = "bg-emerald-500";
+                if (new Date() > end && t.stato !== "Completato") bgColor = "bg-red-500";
 
-                barContainer.innerHTML += `
-                    <div class="bar-segment ${segments[i].color}" 
-                         style="width: ${duration * DAY_PX}px; left: ${left}px;"
-                         title="${segments[i].label}: ${segStart.toLocaleDateString()}">
-                        <span>${segments[i].label}</span>
+                barContainer.innerHTML = `
+                    <div class="bar ${bgColor}" style="left: ${startOffset * DAY_PX}px; width: ${duration * DAY_PX}px;">
+                        <div class="bar-label">${t.titolo}</div>
+                    </div>
+                `;
+            } else {
+                // Nessuna data, mostriamo solo un avviso
+                barContainer.innerHTML = `
+                    <div class="absolute inset-0 flex items-center p-2">
+                        <div class="no-data-bar">Pianificazione non definita</div>
                     </div>
                 `;
             }
-
-            rowBody.appendChild(barContainer);
-            body.appendChild(rowBody);
         });
+
+        // 4. Linea "Oggi"
+        const todayOffset = Math.floor((new Date() - minDate) / (1000*60*60*24));
+        const todayLine = document.createElement('div');
+        todayLine.className = "today-line";
+        todayLine.style.left = `${250 + (todayOffset * DAY_PX)}px`;
+        content.appendChild(todayLine);
     }
 
-    loadData();
+    loadGantt();
 </script>
 </body>
 </html>
