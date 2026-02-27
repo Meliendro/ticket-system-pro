@@ -186,24 +186,20 @@
     const urlParams = new URLSearchParams(window.location.search);
     const editId = urlParams.get('id');
     let listaStatiGlobal = [];
-    let statoInizialeId = 0;
 
     const workflowFields = ['datanuovo', 'datainlavorazione', 'datarisolto', 'dataverificato', 'dataaccettato', 'datachiuso', 'datarifiutato', 'datainattesa'];
 
-    // --- AGGIUNTO: CONTROLLO ACCESSO ---
     async function checkUser() {
         const { data: { user } } = await _supabase.auth.getUser();
         if (!user) {
             window.location.href = 'login.html';
         } else {
-            // AGGIUNTO: Mostra email utente
             document.getElementById('user-badge').innerText = user.email;
         }
         return user;
     }
 
     async function inizializza() {
-        // Verifica se l'utente è loggato prima di procedere
         await checkUser();
 
         try {
@@ -233,14 +229,21 @@
         } catch (err) { console.error(err); }
     }
 
+    // --- CORRETTO: Funzione popolaSelect per gestire meglio le risposte ---
     function popolaSelect(id, response, column, placeholder) {
         const select = document.getElementById(id);
+        if (response.error) {
+            console.error(`Errore nel caricamento di ${id}:`, response.error);
+            return;
+        }
+        
         if (response.data) {
             let options = `<option value="" selected disabled>-- ${placeholder} --</option>`;
             response.data.forEach(i => {
                 const val = i[column];
-                const isAnnullato = (val.toUpperCase() === 'ANNULLATO');
-                // Aggiungiamo l'ID come attributo data per facilitare il controllo logico
+                if (!val) return; // Salta se il valore è nullo/undefined
+                
+                const isAnnullato = (typeof val === 'string' && val.toUpperCase() === 'ANNULLATO');
                 const sId = i.id || 0;
                 options += `<option value="${val}" data-id="${sId}" class="${isAnnullato ? 'opt-annullato' : ''}">${val}</option>`;
             });
@@ -248,12 +251,10 @@
         }
     }
 
-    // NUOVA FUNZIONE: Blocca gli stati precedenti
     function bloccaStatiAntecedenti(statoAttuale) {
         const select = document.getElementById('stato-select');
         const options = select.options;
         
-        // Trova l'ID dell'ordine dello stato attuale salvato nel database
         const attualeFound = listaStatiGlobal.find(s => s.stato === statoAttuale);
         if (!attualeFound) return;
         
@@ -263,8 +264,6 @@
             const optId = parseInt(options[i].getAttribute('data-id'));
             const optVal = options[i].value.toUpperCase();
 
-            // Disabilita se l'ID è minore di quello attuale
-            // Eccezione: Permetti sempre "ANNULLATO" come uscita di emergenza
             if (optId < currentOrder && optVal !== 'ANNULLATO') {
                 options[i].disabled = true;
             }
@@ -334,12 +333,10 @@
                 if (fScad) fScad.value = data[f + 's'] || '';
             });
 
-            // Applica il blocco degli stati antecedenti
             if (data.stato) {
                 bloccaStatiAntecedenti(data.stato);
             }
 
-            // GESTIONE TICKET ANNULLATO
             if(data.stato && data.stato.toUpperCase() === 'ANNULLATO') {
                 disabilitaTutto();
             }
@@ -359,13 +356,11 @@
         document.getElementById('btn-salva').style.display = 'none';
     }
 
-    // --- AGGIUNTO: LOGICA INVIO FORM CON UTENTE ---
     document.getElementById('form-ticket').addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // Ottieni l'utente attuale
         const user = await checkUser();
-        if (!user) return; // Se non loggato, interrompi
+        if (!user) return;
 
         const id = document.getElementById('ticket-id').value;
         const oraAttuale = new Date().toLocaleString('it-IT');
@@ -394,11 +389,9 @@
             fineprevista: document.getElementById('fineprevista').value || null,
             datarilascio: document.getElementById('datarilascio').value || null,
             logtecnico: logAttuale,
-            // --- AGGIUNTO: TRACCIAMENTO UTENTE ---
             updated_by: user.id
         };
 
-        // Se è un nuovo ticket, imposta creato da
         if (!id) {
             payload.created_by = user.id;
         }
