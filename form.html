@@ -199,11 +199,11 @@
         return user;
     }
 
-   async function inizializza() {
+    async function inizializza() {
         await checkUser();
 
         try {
-            // Sostituiamo le chiamate singole con una richiesta unica per assicurarci che funzionino
+            // Chiamata unica per caricare tutti i dati necessari
             const [resStati, resTipi, resPriorita, resAmbiti, resMenu] = await Promise.all([
                 _supabase.from('stato').select('id, stato, descrizione, gg').order('id', { ascending: true }),
                 _supabase.from('tipo').select('tipo'),
@@ -212,23 +212,20 @@
                 _supabase.from('menu').select('menu')
             ]);
 
-            // Debug per vedere se i dati arrivano
+            // --- DEBUG CONSOLE ---
             console.log("Stati:", resStati.data);
             console.log("Ambiti:", resAmbiti.data);
             console.log("Menu:", resMenu.data);
+            // ---------------------
 
             listaStatiGlobal = resStati.data || [];
             
-            // Popoliamo le select controllando se ci sono errori
+            // Popoliamo le select
             if(!resStati.error) popolaSelect('stato-select', resStati, 'stato', 'Stato');
             if(!resTipi.error) popolaSelect('tipo-select', resTipi, 'tipo', 'Tipo');
             if(!resPriorita.error) popolaSelect('priorita-select', resPriorita, 'priorita', 'Priorità');
             
-            // --- CONTROLLO DEBUG ---
-            if(resAmbiti.error) console.error("Errore Ambiti:", resAmbiti.error);
-            if(resMenu.error) console.error("Errore Menu:", resMenu.error);
-            // -----------------------
-
+            // Popoliamo Ambito e Menu (che sono vuoti nel DB)
             if(!resAmbiti.error) popolaSelect('ambito-select', resAmbiti, 'ambito', 'Ambito');
             if(!resMenu.error) popolaSelect('menu-select', resMenu, 'menu', 'Menu');
 
@@ -243,7 +240,6 @@
         } catch (err) { console.error("Errore critico:", err); }
     }
 
-    // --- CORRETTO: Funzione popolaSelect per gestire meglio le risposte ---
     function popolaSelect(id, response, column, placeholder) {
         const select = document.getElementById(id);
         if (response.error) {
@@ -255,7 +251,7 @@
             let options = `<option value="" selected disabled>-- ${placeholder} --</option>`;
             response.data.forEach(i => {
                 const val = i[column];
-                if (!val) return; // Salta se il valore è nullo/undefined
+                if (!val) return; 
                 
                 const isAnnullato = (typeof val === 'string' && val.toUpperCase() === 'ANNULLATO');
                 const sId = i.id || 0;
