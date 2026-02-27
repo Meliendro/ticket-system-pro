@@ -199,24 +199,38 @@
         return user;
     }
 
-    async function inizializza() {
+   async function inizializza() {
         await checkUser();
 
         try {
+            // Sostituiamo le chiamate singole con una richiesta unica per assicurarci che funzionino
             const [resStati, resTipi, resPriorita, resAmbiti, resMenu] = await Promise.all([
-                _supabase.from('stato').select('*').order('id', { ascending: true }),
+                _supabase.from('stato').select('id, stato, descrizione, gg').order('id', { ascending: true }),
                 _supabase.from('tipo').select('tipo'),
                 _supabase.from('priorita').select('priorita'),
                 _supabase.from('ambito').select('ambito'),
                 _supabase.from('menu').select('menu')
             ]);
 
+            // Debug per vedere se i dati arrivano
+            console.log("Stati:", resStati.data);
+            console.log("Ambiti:", resAmbiti.data);
+            console.log("Menu:", resMenu.data);
+
             listaStatiGlobal = resStati.data || [];
-            popolaSelect('stato-select', resStati, 'stato', 'Stato');
-            popolaSelect('tipo-select', resTipi, 'tipo', 'Tipo');
-            popolaSelect('priorita-select', resPriorita, 'priorita', 'Priorità');
-            popolaSelect('ambito-select', resAmbiti, 'ambito', 'Ambito');
-            popolaSelect('menu-select', resMenu, 'menu', 'Menu');
+            
+            // Popoliamo le select controllando se ci sono errori
+            if(!resStati.error) popolaSelect('stato-select', resStati, 'stato', 'Stato');
+            if(!resTipi.error) popolaSelect('tipo-select', resTipi, 'tipo', 'Tipo');
+            if(!resPriorita.error) popolaSelect('priorita-select', resPriorita, 'priorita', 'Priorità');
+            
+            // --- CONTROLLO DEBUG ---
+            if(resAmbiti.error) console.error("Errore Ambiti:", resAmbiti.error);
+            if(resMenu.error) console.error("Errore Menu:", resMenu.error);
+            // -----------------------
+
+            if(!resAmbiti.error) popolaSelect('ambito-select', resAmbiti, 'ambito', 'Ambito');
+            if(!resMenu.error) popolaSelect('menu-select', resMenu, 'menu', 'Menu');
 
             if (editId) {
                 document.getElementById('titolo-header').innerText = "Modifica Ticket #" + editId;
@@ -226,7 +240,7 @@
                 document.getElementById('titolo-header').innerText = "Nuovo Ticket";
                 document.getElementById('tkn-id').innerText = "NEW";
             }
-        } catch (err) { console.error(err); }
+        } catch (err) { console.error("Errore critico:", err); }
     }
 
     // --- CORRETTO: Funzione popolaSelect per gestire meglio le risposte ---
