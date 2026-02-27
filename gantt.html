@@ -2,7 +2,6 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gantt Operativo Ticket | 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -29,59 +28,36 @@
 
     <div class="gantt-container" id="gantt-viewport">
         <div id="timeline-header" class="flex border-b border-slate-200 bg-slate-50 sticky top-0 z-20"></div>
-        
         <div id="gantt-content" class="relative"></div>
     </div>
 </div>
 
 <script>
-    // --- CONFIGURA SUPABASE ---
-    const SB_URL = 'https://tdpmdloicnfqyixlxweh.supabase.co'; 
-    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg
-';
+    // --- CONFIGURA SUPABASE QUI ---
+    const SB_URL = 'TUO_URL_SUPABASE'; 
+    const SB_KEY = 'TUA_ANON_KEY';
+    // -----------------------------
+    
     const supabase = supabase.createClient(SB_URL, SB_KEY);
-    
-    const DAY_PX = 40; // Larghezza in pixel per ogni giorno
+    const DAY_PX = 40; 
 
-async function loadGantt() {
-    const content = document.getElementById('gantt-content');
-    const header = document.getElementById('timeline-header');
-    
-    // Mostriamo un messaggio di caricamento
-    content.innerHTML = '<div class="p-4 text-slate-500">Tentativo di connessione a Supabase...</div>';
-    header.innerHTML = '';
+    async function loadGantt() {
+        const content = document.getElementById('gantt-content');
+        const header = document.getElementById('timeline-header');
+        content.innerHTML = '<div class="p-4">Caricamento...</div>';
+        header.innerHTML = '';
 
-    try {
-        // Recuperiamo i dati
         const { data: tickets, error } = await supabase
-            .from('ticket') // <--- VERIFICA CHE QUESTO NOME SIA ESATTO
+            .from('tickets') // <--- CORRETTO: Nome tabella al plurale
             .select('*');
 
         if (error) {
-            content.innerHTML = `<div class="p-4 bg-red-100 text-red-700 rounded m-4">
-                <strong>Errore Supabase:</strong> ${error.message}
-            </div>`;
-            console.error("Errore completo:", error);
+            content.innerHTML = `<div class="p-4 text-red-500">Errore: ${error.message}</div>`;
             return;
         }
 
-        console.log("Dati ricevuti:", tickets);
-
-        if (tickets.length === 0) {
-            content.innerHTML = '<div class="p-4 text-slate-500">La tabella è connessa, ma è vuota. Inserisci dei ticket su Supabase.</div>';
-            return;
-        }
-
-        // Se arriviamo qui, i dati ci sono
         render(tickets);
-
-    } catch (e) {
-        content.innerHTML = `<div class="p-4 bg-red-100 text-red-700 rounded m-4">
-            <strong>Errore imprevisto:</strong> ${e.message}
-        </div>`;
-        console.error(e);
     }
-}
 
     function render(tickets) {
         const header = document.getElementById('timeline-header');
@@ -93,20 +69,24 @@ async function loadGantt() {
             return;
         }
 
-        // 1. Calcolo range temporale (min data inserimento - 2 giorni, max oggi + 30 giorni)
-        const validDates = tickets.map(t => new Date(t.datainserimento)).filter(d => !isNaN(d));
-        if (validDates.length === 0) validDates.push(new Date());
+        // Calcolo Range Temporale basato sulle date disponibili
+        const allDates = [];
+        tickets.forEach(t => {
+            if(t.datainizioprevista) allDates.push(new Date(t.datainizioprevista));
+            if(t.datainserimento) allDates.push(new Date(t.datainserimento));
+        });
         
-        const minDate = new Date(Math.min(...validDates));
+        if (allDates.length === 0) allDates.push(new Date());
+        
+        const minDate = new Date(Math.min(...allDates));
         minDate.setDate(minDate.getDate() - 2);
         
         const maxDate = new Date();
         maxDate.setDate(maxDate.getDate() + 30);
-        
         const totalDays = Math.ceil((maxDate - minDate) / (1000*60*60*24));
 
-        // 2. Render Timeline Header
-        let timelineHtml = `<div style="min-width: 250px" class="border-r border-slate-200"></div>`; // Spazio per titolo
+        // Render Timeline Header
+        let timelineHtml = `<div style="min-width: 250px" class="border-r border-slate-200"></div>`;
         for (let i = 0; i < totalDays; i++) {
             let d = new Date(minDate);
             d.setDate(d.getDate() + i);
@@ -115,13 +95,12 @@ async function loadGantt() {
         header.innerHTML = timelineHtml;
         header.style.width = `${250 + (totalDays * DAY_PX)}px`;
 
-        // 3. Render Righe Ticket
+        // Render Righe
         tickets.forEach(t => {
             const row = document.createElement('div');
             row.className = "flex border-b border-slate-100 row-height relative";
             row.style.width = `${250 + (totalDays * DAY_PX)}px`;
 
-            // Titolo e ID
             row.innerHTML = `
                 <div style="min-width: 250px" class="flex items-center px-4 border-r border-slate-100 bg-white z-10 sticky left-0">
                     <div>
@@ -133,14 +112,12 @@ async function loadGantt() {
             `;
             content.appendChild(row);
 
-            // Calcolo Barre
             const barContainer = document.getElementById(`row-bar-${t.id}`);
             
-            // Verifichiamo se ci sono date per la pianificazione
+            // Logica Pianificazione
             if (t.datainizioprevista && t.datafineprevista) {
                 const start = new Date(t.datainizioprevista);
                 const end = new Date(t.datafineprevista);
-                
                 const startOffset = Math.floor((start - minDate) / (1000*60*60*24));
                 const duration = Math.ceil((end - start) / (1000*60*60*24));
                 
@@ -150,20 +127,19 @@ async function loadGantt() {
 
                 barContainer.innerHTML = `
                     <div class="bar ${bgColor}" style="left: ${startOffset * DAY_PX}px; width: ${duration * DAY_PX}px;">
-                        <div class="bar-label">${t.titolo}</div>
+                        <div class="bar-label">${t.titolo || 'Ticket'}</div>
                     </div>
                 `;
             } else {
-                // Nessuna data, mostriamo solo un avviso
                 barContainer.innerHTML = `
                     <div class="absolute inset-0 flex items-center p-2">
-                        <div class="no-data-bar">Pianificazione non definita</div>
+                        <div class="no-data-bar">Nessuna pianificazione</div>
                     </div>
                 `;
             }
         });
 
-        // 4. Linea "Oggi"
+        // Linea Oggi
         const todayOffset = Math.floor((new Date() - minDate) / (1000*60*60*24));
         const todayLine = document.createElement('div');
         todayLine.className = "today-line";
