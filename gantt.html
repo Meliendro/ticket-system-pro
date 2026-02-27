@@ -34,11 +34,12 @@
 
 <script>
     // --- CONFIGURA SUPABASE QUI ---
-    const SB_URL = 'TUO_URL_SUPABASE'; 
-    const SB_KEY = 'TUA_ANON_KEY';
+    const SB_URL = ' https://tdpmdloicnfqyixlxweh.supabase.co'; 
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg';
     // -----------------------------
     
-    const supabase = supabase.createClient(SB_URL, SB_KEY);
+    // Dichiarazione singola
+    const client = supabase.createClient(SB_URL, SB_KEY);
     const DAY_PX = 40; 
 
     async function loadGantt() {
@@ -47,8 +48,9 @@
         content.innerHTML = '<div class="p-4">Caricamento...</div>';
         header.innerHTML = '';
 
-        const { data: tickets, error } = await supabase
-            .from('tickets') // <--- CORRETTO: Nome tabella al plurale
+        // Uso del client dichiarato sopra
+        const { data: tickets, error } = await client
+            .from('tickets') 
             .select('*');
 
         if (error) {
@@ -69,7 +71,6 @@
             return;
         }
 
-        // Calcolo Range Temporale basato sulle date disponibili
         const allDates = [];
         tickets.forEach(t => {
             if(t.datainizioprevista) allDates.push(new Date(t.datainizioprevista));
@@ -85,7 +86,6 @@
         maxDate.setDate(maxDate.getDate() + 30);
         const totalDays = Math.ceil((maxDate - minDate) / (1000*60*60*24));
 
-        // Render Timeline Header
         let timelineHtml = `<div style="min-width: 250px" class="border-r border-slate-200"></div>`;
         for (let i = 0; i < totalDays; i++) {
             let d = new Date(minDate);
@@ -95,7 +95,6 @@
         header.innerHTML = timelineHtml;
         header.style.width = `${250 + (totalDays * DAY_PX)}px`;
 
-        // Render Righe
         tickets.forEach(t => {
             const row = document.createElement('div');
             row.className = "flex border-b border-slate-100 row-height relative";
@@ -114,7 +113,6 @@
 
             const barContainer = document.getElementById(`row-bar-${t.id}`);
             
-            // Logica Pianificazione
             if (t.datainizioprevista && t.datafineprevista) {
                 const start = new Date(t.datainizioprevista);
                 const end = new Date(t.datafineprevista);
@@ -139,7 +137,6 @@
             }
         });
 
-        // Linea Oggi
         const todayOffset = Math.floor((new Date() - minDate) / (1000*60*60*24));
         const todayLine = document.createElement('div');
         todayLine.className = "today-line";
