@@ -2,16 +2,23 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Gantt Operativo Ticket | 2026</title>
+    <title>Gantt Stato Ticket | 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f4f8; }
         .gantt-container { overflow-x: auto; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .row-height { height: 48px; }
-        .bar { position: absolute; height: 24px; top: 12px; border-radius: 12px; }
-        .bar-label { font-size: 10px; color: white; padding: 4px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .no-data-bar { background-color: #cbd5e1; height: 24px; border-radius: 12px; display: flex; align-items: center; padding: 0 10px; font-size: 12px; color: #475569; }
+        .row-height { height: 60px; } /* Aumentata altezza riga per ospitare meglio i segmenti */
+        
+        /* Stili per i segmenti di stato */
+        .bar-container { position: absolute; height: 30px; top: 15px; display: flex; }
+        .bar-segment { height: 100%; position: relative; border-right: 1px solid rgba(255,255,255,0.3); }
+        .bar-segment:first-child { border-top-left-radius: 15px; border-bottom-left-radius: 15px; }
+        .bar-segment:last-child { border-top-right-radius: 15px; border-bottom-right-radius: 15px; }
+        
+        .bar-label { font-size: 10px; color: white; padding: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
+        
+        .no-data-bar { background-color: #cbd5e1; height: 30px; border-radius: 15px; display: flex; align-items: center; padding: 0 10px; font-size: 12px; color: #475569; }
         .timeline-cell { min-width: 40px; text-align: center; font-size: 10px; color: #64748b; border-right: 1px solid #e2e8f0; padding: 8px 0; }
         .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(239, 68, 68, 0.7); z-index: 10; }
     </style>
@@ -20,7 +27,7 @@
 
 <div class="max-w-[1800px] mx-auto">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-slate-950">Pianificazione Gantt <span class="text-blue-600">Ticket</span></h1>
+        <h1 class="text-2xl font-bold text-slate-950">Gantt Ciclo di Vita <span class="text-blue-600">Ticket</span></h1>
         <button onclick="loadGantt()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition">
             Aggiorna
         </button>
@@ -34,13 +41,21 @@
 
 <script>
     // --- CONFIGURA SUPABASE QUI ---
-    const SB_URL = ' https://tdpmdloicnfqyixlxweh.supabase.co'; 
+    const SB_URL = 'https://tdpmdloicnfqyixlxweh.supabase.co'; 
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg';
     // -----------------------------
     
-    // Dichiarazione singola
     const client = supabase.createClient(SB_URL, SB_KEY);
     const DAY_PX = 40; 
+
+    // Mappatura colori per stato
+    const stateColors = {
+        'nuovo': 'bg-blue-500',
+        'in lavorazione': 'bg-amber-500',
+        'risolto': 'bg-sky-500',
+        'completato': 'bg-emerald-500',
+        'chiuso': 'bg-slate-600'
+    };
 
     async function loadGantt() {
         const content = document.getElementById('gantt-content');
@@ -48,7 +63,6 @@
         content.innerHTML = '<div class="p-4">Caricamento...</div>';
         header.innerHTML = '';
 
-        // Uso del client dichiarato sopra
         const { data: tickets, error } = await client
             .from('tickets') 
             .select('*');
@@ -71,12 +85,8 @@
             return;
         }
 
-        const allDates = [];
-        tickets.forEach(t => {
-            if(t.datainizioprevista) allDates.push(new Date(t.datainizioprevista));
-            if(t.datainserimento) allDates.push(new Date(t.datainserimento));
-        });
-        
+        // Calcolo Range Temporale basato sulla data di creazione più vecchia e oggi
+        const allDates = tickets.map(t => new Date(t.datainserimento)).filter(d => !isNaN(d));
         if (allDates.length === 0) allDates.push(new Date());
         
         const minDate = new Date(Math.min(...allDates));
@@ -86,6 +96,7 @@
         maxDate.setDate(maxDate.getDate() + 30);
         const totalDays = Math.ceil((maxDate - minDate) / (1000*60*60*24));
 
+        // Render Timeline Header
         let timelineHtml = `<div style="min-width: 250px" class="border-r border-slate-200"></div>`;
         for (let i = 0; i < totalDays; i++) {
             let d = new Date(minDate);
@@ -95,6 +106,7 @@
         header.innerHTML = timelineHtml;
         header.style.width = `${250 + (totalDays * DAY_PX)}px`;
 
+        // Render Righe
         tickets.forEach(t => {
             const row = document.createElement('div');
             row.className = "flex border-b border-slate-100 row-height relative";
@@ -113,30 +125,49 @@
 
             const barContainer = document.getElementById(`row-bar-${t.id}`);
             
-            if (t.datainizioprevista && t.datafineprevista) {
-                const start = new Date(t.datainizioprevista);
-                const end = new Date(t.datafineprevista);
-                const startOffset = Math.floor((start - minDate) / (1000*60*60*24));
-                const duration = Math.ceil((end - start) / (1000*60*60*24));
-                
-                let bgColor = "bg-blue-500";
-                if (t.stato === "Completato") bgColor = "bg-emerald-500";
-                if (new Date() > end && t.stato !== "Completato") bgColor = "bg-red-500";
+            // --- LOGICA NUOVA: Segmenti per Stato ---
+            const segments = [];
+            
+            // Definiamo i segmenti basandoci sulle date disponibili
+            if (t.datainserimento) segments.push({ date: new Date(t.datainserimento), state: 'nuovo' });
+            if (t.datainlavorazione) segments.push({ date: new Date(t.datainlavorazione), state: 'in lavorazione' });
+            if (t.datarisolto) segments.push({ date: new Date(t.datarisolto), state: 'risolto' });
+            if (t.datachiuso) segments.push({ date: new Date(t.datachiuso), state: 'chiuso' });
+            
+            // Ordiniamo i segmenti per data
+            segments.sort((a, b) => a.date - b.date);
 
-                barContainer.innerHTML = `
-                    <div class="bar ${bgColor}" style="left: ${startOffset * DAY_PX}px; width: ${duration * DAY_PX}px;">
-                        <div class="bar-label">${t.titolo || 'Ticket'}</div>
-                    </div>
-                `;
+            if (segments.length > 0) {
+                const barWrapper = document.createElement('div');
+                barWrapper.className = "bar-container";
+                
+                segments.forEach((seg, index) => {
+                    const start = seg.date;
+                    // La fine del segmento è la data del segmento successivo o oggi
+                    const end = (index < segments.length - 1) ? segments[index+1].date : new Date();
+                    
+                    const startOffset = Math.floor((start - minDate) / (1000*60*60*24));
+                    const duration = Math.max(1, Math.ceil((end - start) / (1000*60*60*24)));
+                    const color = stateColors[seg.state] || 'bg-slate-400';
+
+                    barWrapper.innerHTML += `
+                        <div class="bar-segment ${color}" style="width: ${duration * DAY_PX}px;" title="${seg.state}: ${start.toLocaleDateString()}">
+                            ${index === 0 ? `<div class="bar-label">${t.titolo}</div>` : ''}
+                        </div>
+                    `;
+                });
+                barContainer.appendChild(barWrapper);
             } else {
+                // Nessuna data, mostriamo solo un avviso
                 barContainer.innerHTML = `
                     <div class="absolute inset-0 flex items-center p-2">
-                        <div class="no-data-bar">Nessuna pianificazione</div>
+                        <div class="no-data-bar">Nessuna data di stato</div>
                     </div>
                 `;
             }
         });
 
+        // Linea Oggi
         const todayOffset = Math.floor((new Date() - minDate) / (1000*60*60*24));
         const todayLine = document.createElement('div');
         todayLine.className = "today-line";
