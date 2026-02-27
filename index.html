@@ -46,6 +46,13 @@
         h1 { font-weight: 800; font-size: 1.8rem; margin: 0; display: flex; align-items: center; gap: 12px; }
         h1 i { color: var(--accent); }
 
+        /* --- STILI AGGIUNTI PER UTENTE/LOGOUT --- */
+        .user-panel { display: flex; align-items: center; gap: 15px; }
+        .user-email { font-size: 0.9rem; color: #64748b; font-weight: 600; }
+        .btn-logout { background: #fee2e2; color: var(--danger); padding: 8px 15px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.9rem; transition: 0.3s; }
+        .btn-logout:hover { background: var(--danger); color: white; }
+        /* -------------------------------------- */
+
         .stats-bar {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -167,7 +174,11 @@
 <div class="container">
     <div class="header-section">
         <h1><i class="fas fa-ticket-alt"></i> Elite Ticket Management</h1>
-        <a href="form.html" class="btn btn-add"><i class="fas fa-plus"></i> Nuovo Ticket</a>
+        <div class="user-panel">
+            <span id="user-email" class="user-email"></span>
+            <a href="form.html" class="btn btn-add"><i class="fas fa-plus"></i> Nuovo Ticket</a>
+            <a href="#" class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i></a>
+        </div>
     </div>
 
     <div class="stats-bar">
@@ -245,6 +256,23 @@
     let datiGlobali = [];
     let soloScadutiAttivo = false;
     let mostraAnnullati = false;
+
+    // --- CONTROLLO ACCESSO E UTENTE ---
+    async function checkUser() {
+        const { data: { user } } = await _supabase.auth.getUser();
+        if (!user) {
+            window.location.href = 'login.html';
+            return;
+        }
+        document.getElementById('user-email').innerText = user.email;
+    }
+    checkUser();
+
+    async function logout() {
+        await _supabase.auth.signOut();
+        window.location.href = 'login.html';
+    }
+    // ----------------------------------
 
     function formattaData(d) { return d ? new Date(d).toLocaleDateString('it-IT') : '-'; }
 
@@ -379,7 +407,7 @@
             datiGlobali = data;
             popolaFiltri(data);
             aggiornaStats(data);
-            applicaFiltri(); // Usa applicaFiltri invece di renderizza direttamente per rispettare lo stato iniziale
+            applicaFiltri();
         }
     }
 
