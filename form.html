@@ -193,14 +193,18 @@
         const { data: { user } } = await _supabase.auth.getUser();
         if (!user) {
             window.location.href = 'login.html';
+            return null;
         } else {
             document.getElementById('user-badge').innerText = user.email;
+            return user;
         }
-        return user;
     }
 
     async function inizializza() {
-        await checkUser();
+        // --- MODIFICA SICUREZZA SESSIONE ---
+        const user = await checkUser();
+        if (!user) return; // Interrompe se non c'è utente loggato
+        // ------------------------------------
 
         try {
             // Chiamata unica per caricare tutti i dati necessari
@@ -225,7 +229,7 @@
             if(!resTipi.error) popolaSelect('tipo-select', resTipi, 'tipo', 'Tipo');
             if(!resPriorita.error) popolaSelect('priorita-select', resPriorita, 'priorita', 'Priorità');
             
-            // Popoliamo Ambito e Menu (che sono vuoti nel DB)
+            // Popoliamo Ambito e Menu (che ora dovrebbero funzionare grazie a RLS)
             if(!resAmbiti.error) popolaSelect('ambito-select', resAmbiti, 'ambito', 'Ambito');
             if(!resMenu.error) popolaSelect('menu-select', resMenu, 'menu', 'Menu');
 
