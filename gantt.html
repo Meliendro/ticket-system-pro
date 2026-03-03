@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gantt RIVIT | Fixed Tooltip Edition</title>
+    <title>RIVIT GANTT | OVERDUE CONTROL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -11,48 +11,93 @@
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
         
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; margin: 0; }
-        .gantt-viewport { overflow-x: auto; background: #1e293b; border-radius: 20px; border: 1px solid #334155; }
-        .row-height { height: 90px; border-bottom: 1px solid #334155; position: relative; }
+        .gantt-viewport { overflow-x: auto; background: #1e293b; border-radius: 24px; border: 1px solid #334155; position: relative; }
+        .row-height { height: 100px; border-bottom: 1px solid #334155; position: relative; }
         
-        .master-bar { position: absolute; height: 46px; top: 22px; background: rgba(51, 65, 85, 0.3); border-radius: 8px; border: 1px dashed #475569; z-index: 1; pointer-events: none; }
-        .segment-wrapper { position: absolute; height: 32px; top: 29px; display: flex; z-index: 10; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+        .track-container { position: relative; width: 100%; height: 100%; }
         
-        .seg { height: 100%; position: relative; transition: all 0.2s; cursor: help; }
-        .seg:hover { filter: brightness(1.25); outline: 2px solid white; z-index: 20; }
-        
+        /* Barra Stato Standard */
+        .seg-bar { 
+            position: absolute; 
+            height: 32px; 
+            top: 34px; 
+            border-radius: 6px; 
+            z-index: 20; 
+            cursor: help;
+            border: 1px solid rgba(255,255,255,0.15);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.9);
+        }
+
+        /* Segmento di Ritardo (Prolungamento) */
+        .delay-bar {
+            position: absolute;
+            height: 32px;
+            top: 34px;
+            background: repeating-linear-gradient(
+                45deg,
+                #ef4444,
+                #ef4444 10px,
+                #991b1b 10px,
+                #991b1b 20px
+            );
+            border-radius: 0 6px 6px 0;
+            z-index: 10;
+            opacity: 0.8;
+            animation: pulse-red 2s infinite;
+            border: 1px solid #ef4444;
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* Colori Stati */
         .seg-nuovo { background: #3b82f6; }
         .seg-lavorazione { background: #f59e0b; }
         .seg-risolto { background: #10b981; }
         .seg-verificato { background: #8b5cf6; }
         .seg-accettato { background: #ec4899; }
         .seg-chiuso { background: #64748b; }
-        .seg-rifiutato { background: #ef4444; }
-        .seg-attesa { background: #06b6d4; }
 
-        .deadline-marker { position: absolute; width: 2px; height: 54px; top: 18px; background: #ff4757; z-index: 30; pointer-events: none; }
-        .deadline-marker::after { content: '🚩'; position: absolute; top: -16px; left: -7px; font-size: 11px; }
-
-        .timeline-cell { min-width: 50px; text-align: center; font-size: 10px; color: #94a3b8; border-right: 1px solid #334155; padding: 12px 0; font-family: 'JetBrains Mono', monospace; }
-        .sticky-col { position: sticky; left: 0; z-index: 100; background: #1e293b; border-right: 3px solid #3b82f6; min-width: 280px; max-width: 280px; }
-        .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 150; pointer-events: none; }
-        .today-line::before { content: 'OGGI'; position: absolute; top: 0; left: 4px; background: #ef4444; color: white; font-size: 8px; font-weight: bold; padding: 2px 5px; border-radius: 4px; }
+        .timeline-cell { min-width: 50px; text-align: center; font-size: 10px; color: #64748b; border-right: 1px solid #334155; padding: 14px 0; font-family: 'JetBrains Mono', monospace; }
+        .sticky-col { position: sticky; left: 0; z-index: 100; background: #1e293b; border-right: 3px solid #3b82f6; min-width: 280px; max-width: 280px; box-shadow: 10px 0 15px -10px rgba(0,0,0,0.5); }
+        .today-line { position: absolute; top: 0; bottom: 0; width: 3px; background: #ef4444; z-index: 150; pointer-events: none; }
+        .today-line::after { content: 'OGGI'; position: absolute; top: 0; left: 6px; background: #ef4444; color: white; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
     </style>
 </head>
-<body class="p-4 md:p-10">
+<body class="p-6 md:p-12">
 
 <div class="max-w-[1900px] mx-auto">
-    <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
+    <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
         <div>
-            <h1 class="text-3xl font-extrabold tracking-tighter italic text-white">RIVIT <span class="text-blue-500 text-not-italic">GANTT CONTROL</span></h1>
-            <p class="text-slate-400 font-medium text-sm">Monitoraggio Ciclo di Vita e Rispetto Scadenze ('s')</p>
+            <h1 class="text-4xl font-black italic text-white tracking-tighter uppercase">RIVIT <span class="text-blue-500">Alert Gantt</span></h1>
+            <p class="text-slate-400 font-bold flex items-center gap-2">
+                <span class="w-3 h-3 bg-red-500 rounded-full animate-ping"></span> 
+                Monitoraggio Scadenze Critiche e Ritardi in Tempo Reale
+            </p>
         </div>
-        <button onclick="loadGantt()" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-2xl font-bold transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)]">
-            <i class="fas fa-sync-alt mr-2"></i> REFRESH DATABASE
-        </button>
+        <div class="flex gap-4">
+            <div class="flex items-center bg-slate-800 px-4 py-2 rounded-xl border border-slate-700">
+                <div class="w-3 h-3 bg-red-500 mr-2 rounded-sm"></div>
+                <span class="text-[10px] font-bold">RITARDO RILEVATO</span>
+            </div>
+            <button onclick="loadGantt()" class="bg-blue-600 hover:bg-blue-400 text-white px-10 py-4 rounded-2xl font-black transition-all transform hover:scale-105 shadow-xl">
+                REFRESH DATA
+            </button>
+        </div>
     </header>
 
-    <div class="gantt-viewport shadow-2xl" id="viewport">
-        <div id="timeline-header" class="flex bg-slate-800/80 backdrop-blur-md sticky top-0 z-[110]"></div>
+    <div class="gantt-viewport shadow-[0_35px_60px_-15px_rgba(0,0,0,0.6)]" id="viewport">
+        <div id="timeline-header" class="flex bg-slate-800/90 backdrop-blur-xl sticky top-0 z-[110]"></div>
         <div id="gantt-content" class="relative"></div>
     </div>
 </div>
@@ -67,34 +112,32 @@
 
     async function loadGantt() {
         const content = document.getElementById('gantt-content');
-        content.innerHTML = '<div class="p-20 text-center text-blue-400 font-bold tracking-widest">ANALISI TIMELINE...</div>';
         const { data: tickets, error } = await client.from('tickets').select('*');
-        if (error) { content.innerHTML = `<div class="p-20 text-red-400">Errore: ${error.message}</div>`; return; }
+        if (error) return;
         render(tickets);
     }
 
     function render(tickets) {
         const header = document.getElementById('timeline-header');
         const content = document.getElementById('gantt-content');
+        const now = new Date();
         
         let minDate = new Date();
-        minDate.setDate(minDate.getDate() - 7);
+        minDate.setDate(minDate.getDate() - 10);
         tickets.forEach(t => {
             if(t.data_inserimento) {
                 let d = new Date(t.data_inserimento);
-                if(d < minDate) minDate = new Date(d);
+                if(d < minDate) minDate = d;
             }
         });
         minDate.setHours(0,0,0,0);
 
-        const maxDate = new Date(minDate);
-        maxDate.setDate(maxDate.getDate() + 45); 
-        const totalDays = Math.ceil((maxDate - minDate) / 86400000);
-
+        const totalDays = 70;
         let hHtml = `<div class="sticky-col h-full border-r border-slate-700"></div>`;
         for (let i = 0; i < totalDays; i++) {
             let d = new Date(minDate); d.setDate(d.getDate() + i);
-            hHtml += `<div class="timeline-cell">${d.getDate()}/${d.getMonth()+1}</div>`;
+            const isToday = d.toDateString() === now.toDateString();
+            hHtml += `<div class="timeline-cell ${isToday ? 'bg-blue-500/10 text-blue-400' : ''}">${d.getDate()}/${d.getMonth()+1}</div>`;
         }
         header.innerHTML = hHtml;
         header.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
@@ -102,96 +145,81 @@
         content.innerHTML = '';
         tickets.forEach(t => {
             const row = document.createElement('div');
-            row.className = "flex row-height relative hover:bg-slate-800/40 transition-colors";
+            row.className = "flex row-height relative hover:bg-slate-800/50 transition-all";
             row.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
 
-            const mapping = [
-                {k:'datanuovo', s:'nuovo', sk: 'datanuovos'},
-                {k:'datainlavorazione', s:'lavorazione', sk: 'datainlavoraziones'},
-                {k:'datarisolto', s:'risolto', sk: 'datarisoltos'},
-                {k:'dataverificato', s:'verificato', sk: 'dataverificatos'},
-                {k:'dataaccettato', s:'accettato', sk: 'dataaccettatos'},
-                {k:'datachiuso', s:'chiuso', sk: 'datachiusos'},
-                {k:'datarifiutato', s:'rifiutato', sk: 'datarifiutatos'},
-                {k:'datainattesa', s:'attesa', sk: 'datainattesas'}
-            ];
-
-            const states = [];
-            mapping.forEach(m => {
-                if(t[m.k]) states.push({ d: new Date(t[m.k]), s: m.s, d_limit: t[m.sk] ? new Date(t[m.sk]) : null });
-            });
-            states.sort((a,b) => a.d - b.d);
-
             row.innerHTML = `
-                <div class="sticky-col flex items-center px-6 border-r border-slate-700 z-[100]">
-                    <div class="overflow-hidden">
-                        <div class="font-extrabold text-[12px] text-blue-400 truncate tracking-tight">#${t.id} - ${t.titolo || 'TASK'}</div>
-                        <div class="text-[9px] text-slate-500 font-bold uppercase mt-1 italic">${t.operatore || 'ASPETTANDO'}</div>
+                <div class="sticky-col flex items-center px-8 border-r border-slate-700 z-[100]">
+                    <div>
+                        <div class="font-black text-blue-500 text-sm tracking-tighter">#${t.id}</div>
+                        <div class="font-extrabold text-white uppercase text-[11px] leading-tight w-44 truncate">${t.titolo || 'TICKET'}</div>
+                        <div class="text-[9px] text-slate-500 font-bold mt-1 tracking-widest uppercase">${t.operatore || 'Open'}</div>
                     </div>
                 </div>
-                <div class="flex-grow relative" id="track-${t.id}"></div>
+                <div class="flex-grow relative track-container" id="track-${t.id}"></div>
             `;
             content.appendChild(row);
             const track = document.getElementById(`track-${t.id}`);
 
-            if(t.inizioprevisto && t.fineprevista) {
-                const sM = new Date(t.inizioprevisto);
-                const eM = new Date(t.fineprevista);
-                const offM = (sM - minDate) / 86400000;
-                const durM = (eM - sM) / 86400000;
-                const mBar = document.createElement('div');
-                mBar.className = "master-bar";
-                mBar.style.left = `${offM * DAY_PX}px`;
-                mBar.style.width = `${durM * DAY_PX}px`;
-                track.appendChild(mBar);
-            }
+            const mapping = [
+                {start:'datanuovo', end:'datanuovos', label:'Nuovo', class:'seg-nuovo'},
+                {start:'datainlavorazione', end:'datainlavoraziones', label:'Lavorazione', class:'seg-lavorazione'},
+                {start:'datarisolto', end:'datarisoltos', label:'Risolto', class:'seg-risolto'},
+                {start:'dataverificato', end:'dataverificatos', label:'Verificato', class:'seg-verificato'},
+                {start:'dataaccettato', end:'dataaccettatos', label:'Accettato', class:'seg-accettato'},
+                {start:'datachiuso', end:'datachiusos', label:'Chiuso', class:'seg-chiuso'}
+            ];
 
-            if(states.length > 0) {
-                const wrapper = document.createElement('div');
-                wrapper.className = "segment-wrapper";
-                wrapper.style.left = `${((states[0].d - minDate) / 86400000) * DAY_PX}px`;
+            // Ordiniamo per data per capire qual è lo stato attivo più recente
+            const validStates = mapping.filter(m => t[m.start]).map(m => ({...m, dStart: new Date(t[m.start])}));
+            validStates.sort((a,b) => b.dStart - a.dStart);
+            const activeStateKey = validStates.length > 0 ? validStates[0].start : null;
 
-                states.forEach((curr, idx) => {
-                    const startD = new Date(curr.d);
-                    let endD;
-
-                    // Calcolo della data di fine reale per il tooltip
-                    if (idx < states.length - 1) {
-                        endD = new Date(states[idx+1].d);
+            mapping.forEach(m => {
+                if(t[m.start] && t[m.end]) {
+                    const dStart = new Date(t[m.start]);
+                    const dEnd = new Date(t[m.end]);
+                    
+                    const offsetDays = (dStart - minDate) / 86400000;
+                    const durationDays = Math.max(0.1, (dEnd - dStart) / 86400000);
+                    
+                    // Barra Programmata
+                    const bar = document.createElement('div');
+                    bar.className = `seg-bar ${m.class}`;
+                    bar.style.left = `${offsetDays * DAY_PX}px`;
+                    bar.style.width = `${durationDays * DAY_PX}px`;
+                    bar.innerHTML = `<span>${m.label}</span>`;
+                    
+                    // GESTIONE RITARDO
+                    // Se lo stato è quello attuale (il più recente) E oggi supera la scadenza (dEnd)
+                    if(m.start === activeStateKey && now > dEnd && !t.datachiuso) {
+                        const delayOffset = (dEnd - minDate) / 86400000;
+                        const delayDuration = (now - dEnd) / 86400000;
+                        
+                        const delayBar = document.createElement('div');
+                        delayBar.className = "delay-bar";
+                        delayBar.style.left = `${delayOffset * DAY_PX}px`;
+                        delayBar.style.width = `${delayDuration * DAY_PX}px`;
+                        
+                        const diffGiorni = Math.floor(delayDuration);
+                        delayBar.title = `ATTENZIONE: RITARDO DI ${diffGiorni} GIORNI!\nScadenza superata il: ${dEnd.toLocaleDateString()}`;
+                        track.appendChild(delayBar);
+                        
+                        bar.style.boxShadow = "0 0 15px #ef4444";
+                        bar.title = `${m.label.toUpperCase()} (IN RITARDO)\nInizio: ${dStart.toLocaleDateString()}\nScadenza: ${dEnd.toLocaleDateString()}`;
                     } else {
-                        // Se è l'ultimo stato, finisce alla data di chiusura o ad ADESSO
-                        endD = t.datachiuso ? new Date(t.datachiuso) : new Date();
+                        bar.title = `STATO: ${m.label.toUpperCase()}\nInizio: ${dStart.toLocaleDateString()}\nScadenza: ${dEnd.toLocaleDateString()}`;
                     }
-
-                    const durationDays = Math.max(0.05, (endD - startD) / 86400000);
                     
-                    const seg = document.createElement('div');
-                    seg.className = `seg seg-${curr.s}`;
-                    seg.style.width = `${durationDays * DAY_PX}px`;
-                    
-                    // TOOLTIP FIXATO
-                    const toolStart = startD.toLocaleDateString() + " " + startD.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    const toolEnd = endD.toLocaleDateString() + " " + endD.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    seg.title = `STATO: ${curr.s.toUpperCase()}\nINIZIO: ${toolStart}\nFINE: ${toolEnd}`;
-                    
-                    wrapper.appendChild(seg);
-
-                    if(curr.d_limit) {
-                        const mLimit = document.createElement('div');
-                        mLimit.className = "deadline-marker";
-                        const limitOffset = (new Date(curr.d_limit).setHours(23,59,59) - minDate) / 86400000;
-                        mLimit.style.left = `${limitOffset * DAY_PX}px`;
-                        mLimit.title = `SCADENZA ${curr.s.toUpperCase()}: ${new Date(curr.d_limit).toLocaleDateString()}`;
-                        track.appendChild(mLimit);
-                    }
-                });
-                track.appendChild(wrapper);
-            }
+                    track.appendChild(bar);
+                }
+            });
         });
 
+        // Today Line
         const tLine = document.createElement('div');
         tLine.className = "today-line";
-        tLine.style.left = `${COL_WIDTH + ((new Date() - minDate) / 86400000) * DAY_PX}px`;
+        tLine.style.left = `${COL_WIDTH + ((now - minDate) / 86400000) * DAY_PX}px`;
         content.appendChild(tLine);
     }
     loadGantt();
