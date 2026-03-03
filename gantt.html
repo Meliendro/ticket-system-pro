@@ -12,10 +12,46 @@
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
         
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; margin: 0; }
-        .gantt-viewport { overflow-x: auto; background: #1e293b; border-radius: 24px; border: 1px solid #334155; height: 650px; scroll-behavior: smooth; position: relative; }
-        .row-height { height: 125px; border-bottom: 1px solid #334155; position: relative; display: flex; align-items: center; }
         
-        .track-container { position: relative; width: 100%; height: 100%; display: flex; align-items: center; }
+        /* Contenitore principale per gestire lo scroll */
+        .gantt-viewport { 
+            overflow: auto; 
+            background: #1e293b; 
+            border-radius: 24px; 
+            border: 1px solid #334155; 
+            height: 650px; 
+            scroll-behavior: smooth; 
+            position: relative;
+        }
+
+        .row-height { 
+            height: 125px; 
+            border-bottom: 1px solid #334155; 
+            display: flex; 
+            position: relative;
+        }
+        
+        /* COLONNA FISSA: Z-INDEX 150 PER STARE SOPRA TUTTO */
+        .sticky-col { 
+            position: sticky; 
+            left: 0; 
+            z-index: 150; 
+            background: #1e293b; 
+            border-right: 4px solid #3b82f6; 
+            min-width: 250px; 
+            width: 250px;
+            display: flex; 
+            align-items: center; 
+            padding: 0 20px;
+            box-shadow: 10px 0 15px rgba(0,0,0,0.4);
+        }
+
+        /* AREA BARRE: Z-INDEX BASSO */
+        .track-container { 
+            position: relative; 
+            flex-grow: 1;
+            z-index: 10;
+        }
         
         .baseline-ticket {
             position: absolute;
@@ -23,26 +59,19 @@
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
             z-index: 5;
-            pointer-events: none;
-            border: 1px solid #ffffff;
-            box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
             top: 50%;
             transform: translateY(-50%);
+            border: 1px solid #ffffff;
         }
 
         .seg-bar { 
-            position: absolute; height: 26px; border-radius: 6px; z-index: 20; cursor: help;
+            position: absolute; height: 26px; border-radius: 6px; z-index: 20;
             border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center;
             padding: 0 10px; font-size: 9px; font-weight: 800; text-transform: uppercase;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
-        .seg-bar:hover { transform: scale(1.05) translateY(-2px); z-index: 60; outline: 2px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
 
-        /* Posizionamento verticale barre rispetto alla riga */
-        .pos-0 { top: 15px; } 
-        .pos-1 { top: 50px; } 
-        .pos-2 { top: 85px; }
+        /* Posizioni verticali barre */
+        .pos-0 { top: 15px; } .pos-1 { top: 50px; } .pos-2 { top: 85px; }
 
         .delay-fill {
             background: repeating-linear-gradient(45deg, #ef4444, #ef4444 12px, #991b1b 12px, #991b1b 24px);
@@ -57,8 +86,7 @@
         .st-accettato { background: #ec4899; } .st-chiuso { background: #64748b; }
 
         .timeline-cell { min-width: 50px; text-align: center; font-size: 10px; color: #64748b; border-right: 1px solid #334155; padding: 14px 0; font-family: 'JetBrains Mono', monospace; }
-        .sticky-col { position: sticky; left: 0; z-index: 100; background: #1e293b; border-right: 4px solid #3b82f6; min-width: 250px; height: 100%; display: flex; align-items: center; box-shadow: 10px 0 20px rgba(0,0,0,0.5); }
-        .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 150; pointer-events: none; }
+        .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 140; pointer-events: none; }
 
         .ticket-delay-id { animation: blink-text 1.5s infinite; font-weight: 900 !important; }
         .row-delay-bg { background: linear-gradient(90deg, rgba(153, 27, 27, 0.2) 0%, rgba(30, 41, 59, 0) 100%); }
@@ -68,12 +96,10 @@
 
 <div class="max-w-[1900px] mx-auto">
     <div class="flex justify-between items-center mb-6">
-        <a href="menu.html" class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-2 rounded-xl transition flex items-center gap-2 text-sm font-bold">
-            <i class="fas fa-arrow-left"></i> Menu Principale
+        <a href="menu.html" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl border border-slate-600 transition flex items-center gap-2 font-bold text-sm">
+            <i class="fas fa-th-large"></i> Menu Principale
         </a>
-        <div class="text-right">
-            <h1 class="text-2xl font-black italic text-white uppercase tracking-tighter">PROJECT <span class="text-blue-500">CONTROL</span></h1>
-        </div>
+        <h1 class="text-2xl font-black italic text-white uppercase tracking-tighter">PROJECT <span class="text-blue-500">CONTROL</span></h1>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
@@ -95,8 +121,8 @@
     </div>
 
     <div class="gantt-viewport shadow-2xl" id="viewport">
-        <div id="timeline-header" class="flex bg-slate-800/95 backdrop-blur-md sticky top-0 z-[110]"></div>
-        <div id="gantt-content" class="relative"></div>
+        <div id="timeline-header" class="flex bg-slate-800 sticky top-0 z-[200]"></div>
+        <div id="gantt-content"></div>
     </div>
 </div>
 
@@ -115,7 +141,7 @@
             if (error) throw error;
             const sortedTickets = tickets.sort((a, b) => (parseInt(b.id) || 0) - (parseInt(a.id) || 0));
             render(sortedTickets);
-        } catch (err) { console.error("Errore caricamento:", err); }
+        } catch (err) { console.error(err); }
     }
 
     function render(tickets) {
@@ -135,10 +161,10 @@
         minDate.setHours(0,0,0,0);
 
         const totalDays = 120; 
-        let hHtml = `<div class="sticky-col border-r border-slate-700" style="height: 50px; background: #1e293b;"></div>`;
+        let hHtml = `<div class="sticky-col" style="height: 45px; background: #0f172a; border-right: 4px solid #3b82f6;"></div>`;
         for (let i = 0; i < totalDays; i++) {
             let d = new Date(minDate); d.setDate(d.getDate() + i);
-            hHtml += `<div class="timeline-cell" style="min-width: 50px;">${d.getDate()}/${d.getMonth()+1}</div>`;
+            hHtml += `<div class="timeline-cell">${d.getDate()}/${d.getMonth()+1}</div>`;
         }
         header.innerHTML = hHtml;
         header.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
@@ -168,26 +194,23 @@
             }
 
             const row = document.createElement('div');
-            row.className = `flex row-height relative hover:bg-slate-800/40 transition-colors ${isDelay ? 'row-delay-bg' : ''}`;
+            row.className = `row-height ${isDelay ? 'row-delay-bg' : ''}`;
             row.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
             
             row.innerHTML = `
-                <div class="sticky-col px-8 border-r border-slate-700 ${isDelay ? 'row-delay-bg' : ''}">
-                    <div>
-                        <div class="font-black text-sm ${isDelay ? 'ticket-delay-id' : 'text-blue-500'}">
+                <div class="sticky-col ${isDelay ? 'row-delay-bg' : ''}">
+                    <div class="truncate">
+                        <div class="${isDelay ? 'ticket-delay-id' : 'text-blue-500'} font-black text-sm">
                             ${isDelay ? '⚠️ ' : ''}#${t.id}
                         </div>
-                        <div class="font-bold text-white text-[11px] uppercase truncate w-44">
-                            ${t.titolo || 'N/A'}
-                        </div>
+                        <div class="text-white text-[11px] font-bold uppercase truncate">${t.titolo || 'N/A'}</div>
                     </div>
                 </div>
-                <div class="track-container flex-grow relative" id="track-${t.id}"></div>
+                <div class="track-container" id="track-${t.id}"></div>
             `;
             content.appendChild(row);
 
             const track = document.getElementById(`track-${t.id}`);
-
             const validDates = [t.data_inserimento, t.datanuovo, t.datainlavorazione, t.datarisolto, t.dataverificato, t.dataaccettato, t.datachiuso]
                 .filter(d => d && !isNaN(new Date(d).getTime())).map(d => new Date(d));
 
@@ -197,7 +220,7 @@
                 const baseLine = document.createElement('div');
                 baseLine.className = "baseline-ticket";
                 baseLine.style.left = `${((dStart - minDate)/86400000)*DAY_PX}px`;
-                baseLine.style.width = `${Math.max(25, ((dEnd - dStart)/86400000)*DAY_PX)}px`;
+                baseLine.style.width = `${Math.max(20, ((dEnd - dStart)/86400000)*DAY_PX)}px`;
                 track.appendChild(baseLine);
             }
 
@@ -209,7 +232,7 @@
                     const bar = document.createElement('div');
                     bar.className = `seg-bar ${m.class} pos-${idx % 3}`;
                     bar.style.left = `${((dS - minDate)/86400000)*DAY_PX}px`;
-                    bar.style.width = `${((dE - dS)/86400000)*DAY_PX}px`;
+                    bar.style.width = `${Math.max(10, ((dE - dS)/86400000)*DAY_PX)}px`;
                     bar.innerHTML = `<span>${m.label}</span>`;
                     
                     if(m.start === (activeStates[0]?.start) && now > dE && !t.datachiuso) {
@@ -233,10 +256,7 @@
         tLine.style.left = `${COL_WIDTH + todayOffset}px`;
         content.appendChild(tLine);
 
-        setTimeout(() => {
-            const scrollPos = todayOffset - (viewport.clientWidth / 2) + (COL_WIDTH / 2);
-            viewport.scrollLeft = scrollPos;
-        }, 300);
+        setTimeout(() => { viewport.scrollLeft = todayOffset - 200; }, 300);
     }
 
     function updateChart(counts) {
