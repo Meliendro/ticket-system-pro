@@ -17,17 +17,17 @@
         
         .track-container { position: relative; width: 100%; height: 95px; }
         
-        /* Linea di fondo (Binario del Ticket) - ORA BIANCA */
+        /* Linea di fondo (Binario del Ticket) - BIANCA */
         .baseline-ticket {
             position: absolute;
             height: 8px;
-            background: rgba(255, 255, 255, 0.8); /* Bianco con leggera opacità */
+            background: rgba(255, 255, 255, 0.9);
             border-radius: 20px;
             top: 40px; 
             z-index: 5;
             pointer-events: none;
-            border: 1px solid rgba(0,0,0,0.2);
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            border: 1px solid white;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
         }
 
         /* Barre di Stato */
@@ -42,7 +42,6 @@
 
         .pos-0 { top: 4px; } .pos-1 { top: 31px; } .pos-2 { top: 58px; }
 
-        /* Delay Pattern */
         .delay-fill {
             background: repeating-linear-gradient(45deg, #ef4444, #ef4444 12px, #991b1b 12px, #991b1b 24px);
             border: 1px solid #f87171; animation: pulse-red 2s infinite; z-index: 15;
@@ -68,16 +67,13 @@
         <div class="stat-card flex flex-col justify-center items-center border-l-8 border-red-600 shadow-xl">
             <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">SLA Superati</h3>
             <span id="delay-count" class="text-6xl font-black text-white mt-2">0</span>
-            <p class="text-[10px] text-red-500 mt-3 font-bold animate-pulse tracking-widest uppercase">Rilevati</p>
         </div>
-
         <div class="stat-card flex flex-col items-center justify-between">
             <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">Avanzamento Globale</h3>
             <div class="relative w-full h-36 flex justify-center items-center">
                 <canvas id="stateChart"></canvas>
             </div>
         </div>
-
         <div class="stat-card flex flex-col justify-center border-l-8 border-blue-600 shadow-xl px-10">
             <h1 class="text-2xl font-black italic text-white uppercase tracking-tighter">PROJECT <span class="text-blue-500">CONTROL HUB</span></h1>
             <button onclick="loadGantt()" class="mt-6 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black transition-all text-xs uppercase shadow-lg flex items-center justify-center">
@@ -106,22 +102,10 @@
             const { data: tickets, error } = await client.from('tickets').select('*');
             if (error) throw error;
             
-            // --- ORDINAMENTO DECRESCENTE AGGIUNTO QUI ---
+            // ORDINAMENTO DECRESCENTE (ID o Data più recente)
             if (tickets && tickets.length > 0) {
-                tickets.sort((a, b) => {
-                    // Trova la data più recente per il ticket A
-                    const allDatesA = [a.data_inserimento, a.datanuovo, a.datainlavorazione, a.datarisolto, a.datachiuso].filter(d => d).map(d => new Date(d));
-                    const maxDateA = allDatesA.length > 0 ? new Date(Math.max(...allDatesA)) : new Date(0);
-                    
-                    // Trova la data più recente per il ticket B
-                    const allDatesB = [b.data_inserimento, b.datanuovo, b.datainlavorazione, b.datarisolto, b.datachiuso].filter(d => d).map(d => new Date(d));
-                    const maxDateB = allDatesB.length > 0 ? new Date(Math.max(...allDatesB)) : new Date(0);
-                    
-                    // Ordina in modo decrescente (dal più recente al più vecchio)
-                    return maxDateB - maxDateA;
-                });
+                tickets.sort((a, b) => b.id - a.id); // Ordinamento primario per ID decrescente
             }
-            // --- FINE ORDINAMENTO ---
 
             render(tickets);
         } catch (err) {
@@ -139,11 +123,8 @@
         let minDate = new Date();
         minDate.setDate(minDate.getDate() - 15);
         tickets.forEach(t => {
-            const dates = [t.data_inserimento, t.datanuovo, t.datainlavorazione].filter(d => d).map(d => new Date(d));
-            if (dates.length > 0) {
-                const earliest = new Date(Math.min(...dates));
-                if (earliest < minDate) minDate = earliest;
-            }
+            const d = t.data_inserimento ? new Date(t.data_inserimento) : new Date();
+            if (d < minDate) minDate = d;
         });
         minDate.setHours(0,0,0,0);
 
@@ -157,8 +138,6 @@
         header.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
 
         content.innerHTML = '';
-        if (!tickets || tickets.length === 0) return;
-
         tickets.forEach(t => {
             const row = document.createElement('div');
             row.className = "flex row-height relative hover:bg-slate-800/40 transition-colors";
@@ -171,22 +150,15 @@
 
             const track = document.getElementById(`track-${t.id}`);
 
-            // LINEA BASE ROBUSTA (ORA COLORE BIANCO)
-            const allDates = [
-                t.data_inserimento, t.datanuovo, t.datainlavorazione, t.datarisolto, 
-                t.dataverificato, t.dataaccettato, t.datachiuso
-            ].filter(d => d).map(d => new Date(d));
-
-            if (allDates.length > 0) {
-                const dStart = new Date(Math.min(...allDates));
-                const dEnd = t.datachiuso ? new Date(t.datachiuso) : now;
-                
-                const baseLine = document.createElement('div');
-                baseLine.className = "baseline-ticket";
-                baseLine.style.left = `${((dStart - minDate)/86400000)*DAY_PX}px`;
-                baseLine.style.width = `${Math.max(20, ((dEnd - dStart)/86400000)*DAY_PX)}px`;
-                track.appendChild(baseLine);
-            }
+            // LINEA BIANCA DI FONDO (Binario sempre presente)
+            const dStart = t.data_inserimento ? new Date(t.data_inserimento) : new Date();
+            const dEnd = t.datachiuso ? new Date(t.datachiuso) : now;
+            
+            const baseLine = document.createElement('div');
+            baseLine.className = "baseline-ticket";
+            baseLine.style.left = `${((dStart - minDate)/86400000)*DAY_PX}px`;
+            baseLine.style.width = `${Math.max(30, ((dEnd - dStart)/86400000)*DAY_PX)}px`;
+            track.appendChild(baseLine);
 
             const mapping = [
                 {start:'datanuovo', end:'datanuovos', label:'Nuovo', class:'st-nuovo', key:'nuovo'},
@@ -199,21 +171,18 @@
 
             const activeStates = mapping.filter(m => t[m.start]).map(m => ({...m, d: new Date(t[m.start])}));
             activeStates.sort((a,b) => b.d - a.d);
-            const currentStateKey = activeStates.length > 0 ? activeStates[0].start : null;
             if(activeStates.length > 0) stateCounts[activeStates[0].key]++;
 
             mapping.forEach((m, idx) => {
                 if(t[m.start] && t[m.end]) {
                     const dS = new Date(t[m.start]), dE = new Date(t[m.end]);
-                    if (isNaN(dS.getTime()) || isNaN(dE.getTime())) return;
-
                     const bar = document.createElement('div');
                     bar.className = `seg-bar ${m.class} pos-${idx % 3}`;
                     bar.style.left = `${((dS - minDate)/86400000)*DAY_PX}px`;
-                    bar.style.width = `${(Math.max(0.1, (dE - dS)/86400000))*DAY_PX}px`;
+                    bar.style.width = `${((dE - dS)/86400000)*DAY_PX}px`;
                     bar.innerHTML = `<span>${m.label}</span>`;
                     
-                    if(m.start === currentStateKey && now > dE && !t.datachiuso) {
+                    if(m.start === (activeStates[0]?.start) && now > dE && !t.datachiuso) {
                         delayCounter++;
                         const dBar = document.createElement('div');
                         dBar.className = `seg-bar delay-fill pos-${idx % 3}`;
@@ -237,14 +206,13 @@
 
     function updateChart(counts) {
         const ctx = document.getElementById('stateChart').getContext('2d');
-        const dataValues = [counts.nuovo, counts.lavorazione, counts.risolto, counts.verificato, counts.accettato, counts.chiuso];
         if (myChart) myChart.destroy();
         myChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: ['Nuovo', 'Lavorazione', 'Risolto', 'Verificato', 'Accettato', 'Chiuso'],
                 datasets: [{
-                    data: dataValues,
+                    data: [counts.nuovo, counts.lavorazione, counts.risolto, counts.verificato, counts.accettato, counts.chiuso],
                     backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#64748b'],
                     borderWidth: 0
                 }]
