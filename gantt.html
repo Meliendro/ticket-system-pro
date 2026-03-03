@@ -29,6 +29,7 @@
             box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
         }
 
+        /* Tooltip personalizzato tramite attributo data-tooltip */
         .seg-bar { 
             position: absolute; height: 26px; border-radius: 6px; z-index: 20; cursor: help;
             border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center;
@@ -37,7 +38,34 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             white-space: nowrap;
         }
-        .seg-bar:hover { transform: scale(1.05); z-index: 60; outline: 2px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+
+        /* Effetto Disclaimer al passaggio del mouse */
+        .seg-bar::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #000;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 10px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            pointer-events: none;
+            border: 1px solid #334155;
+        }
+        .seg-bar:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .seg-bar:hover { transform: scale(1.02); z-index: 60; outline: 2px solid white; }
 
         .pos-0 { top: 4px; } .pos-1 { top: 31px; } .pos-2 { top: 58px; }
 
@@ -48,7 +76,6 @@
 
         @keyframes pulse-red { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
 
-        /* Animazione per evidenziare la colonna dei ticket in ritardo */
         @keyframes alert-row {
             0%, 100% { background: #1e293b; }
             50% { background: #450a0a; }
@@ -114,6 +141,10 @@
     let myChart = null;
     let globalMinDate = new Date();
 
+    function formatDate(date) {
+        return date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
     async function loadGantt() {
         try {
             const { data: tickets, error } = await client.from('tickets').select('*');
@@ -173,7 +204,6 @@
             row.className = "flex row-height relative hover:bg-slate-800/40 transition-colors";
             row.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
 
-            // Creiamo prima il contenitore delle tracce per calcolare i ritardi
             const trackId = `track-${t.id}`;
             const stickyId = `sticky-${t.id}`;
 
@@ -181,7 +211,7 @@
                 <div id="${stickyId}" class="sticky-col flex items-center px-8 border-r border-slate-700">
                     <div>
                         <div class="font-black text-blue-500 text-sm">#${t.id}</div>
-                        <div class="font-bold text-white text-[11px] uppercase truncate w-44">${t.titolo || 'N/A'}</div>
+                        <div class="font-bold text-white text-[11px] uppercase truncate w-44" title="${t.titolo}">${t.titolo || 'N/A'}</div>
                         <div id="status-tag-${t.id}" class="text-[9px] font-bold mt-1 opacity-60"></div>
                     </div>
                 </div>
@@ -226,13 +256,16 @@
                     bar.style.width = `${((dE - dS)/86400000)*DAY_PX}px`;
                     bar.innerHTML = `<span>${m.label}</span>`;
                     
-                    // Logica Ritardo: se l'ultimo stato attivo ha superato la data di fine prevista e il ticket non è chiuso
+                    // Aggiunta Disclaimer Inizio/Fine
+                    bar.setAttribute('data-tooltip', `Inizio: ${formatDate(dS)} - Fine: ${formatDate(dE)}`);
+                    
                     if(m.start === (activeStates[0]?.start) && now > dE && !t.datachiuso) {
                         isTicketDelayed = true;
                         const dBar = document.createElement('div');
                         dBar.className = `seg-bar delay-fill pos-${idx % 3}`;
                         dBar.style.left = `${((dE - globalMinDate)/86400000)*DAY_PX}px`;
                         dBar.style.width = `${((now - dE)/86400000)*DAY_PX}px`;
+                        dBar.setAttribute('data-tooltip', `RITARDO: Scadenza il ${formatDate(dE)}`);
                         track.appendChild(dBar);
                     }
                     track.appendChild(bar);
