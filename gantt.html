@@ -38,7 +38,6 @@
             white-space: nowrap;
         }
 
-        /* Tooltip / Disclaimer potenziato */
         .seg-bar::after {
             content: attr(data-tooltip);
             position: absolute;
@@ -56,17 +55,13 @@
             opacity: 0;
             visibility: hidden;
             transition: all 0.2s ease;
-            z-index: 2000; /* Valore altissimo per stare sopra tutto */
+            z-index: 2000;
             box-shadow: 0 10px 25px rgba(0,0,0,0.8);
             pointer-events: none;
             border: 1px solid #475569;
         }
         
-        .seg-bar:hover::after {
-            opacity: 1;
-            visibility: visible;
-        }
-
+        .seg-bar:hover::after { opacity: 1; visibility: visible; }
         .seg-bar:hover { transform: translateY(-2px); z-index: 500; outline: 2px solid white; }
 
         .pos-0 { top: 4px; } .pos-1 { top: 31px; } .pos-2 { top: 58px; }
@@ -125,8 +120,8 @@
                 <button onclick="loadGantt()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black transition-all text-[10px] uppercase shadow-lg flex items-center justify-center">
                     <i class="fas fa-sync-alt mr-2 text-xs"></i>Aggiorna
                 </button>
-                <button onclick="window.location.href='ticket_table.html'" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-2xl font-black transition-all text-[10px] uppercase shadow-lg flex items-center justify-center">
-                    <i class="fas fa-table mr-2 text-xs"></i>Menu Tabella
+                <button onclick="window.location.href='index.html'" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-2xl font-black transition-all text-[10px] uppercase shadow-lg flex items-center justify-center">
+                    <i class="fas fa-th mr-2 text-xs"></i>Menu Principale
                 </button>
             </div>
         </div>
@@ -159,7 +154,6 @@
             
             if (tickets && tickets.length > 0) {
                 tickets.sort((a, b) => b.id - a.id);
-
                 let earliest = new Date();
                 tickets.forEach(t => {
                     if (t.data_inserimento) {
@@ -171,12 +165,9 @@
                 earliest.setHours(0,0,0,0);
                 globalMinDate = earliest;
             }
-
             render(tickets);
             scrollToToday();
-        } catch (err) {
-            console.error("Errore:", err);
-        }
+        } catch (err) { console.error("Errore:", err); }
     }
 
     function scrollToToday() {
@@ -193,7 +184,6 @@
         const now = new Date();
         let totalDelayCounter = 0;
         let stateCounts = { nuovo: 0, lavorazione: 0, risolto: 0, verificato: 0, accettato: 0, chiuso: 0 };
-        
         const totalDays = 150; 
         
         let hHtml = `<div class="sticky-col h-full border-r border-slate-700"></div>`;
@@ -257,8 +247,6 @@
             mapping.forEach((m, idx) => {
                 if(t[m.start] && t[m.end]) {
                     const dS = new Date(t[m.start]), dE = new Date(t[m.end]);
-                    
-                    // Barra principale di stato
                     const bar = document.createElement('div');
                     bar.className = `seg-bar ${m.class} pos-${idx % 3}`;
                     bar.style.left = `${((dS - globalMinDate)/86400000)*DAY_PX}px`;
@@ -267,7 +255,6 @@
                     bar.setAttribute('data-tooltip', `${m.label.toUpperCase()} | DAL: ${formatDate(dS)} AL: ${formatDate(dE)}`);
                     track.appendChild(bar);
                     
-                    // Logica Ritardo
                     if(m.start === (activeStates[0]?.start) && now > dE && !t.datachiuso) {
                         isTicketDelayed = true;
                         const dBar = document.createElement('div');
@@ -288,7 +275,6 @@
 
         document.getElementById('delay-count').innerText = totalDelayCounter;
         updateChart(stateCounts);
-        
         const tLine = document.createElement('div');
         tLine.className = "today-line";
         tLine.style.left = `${COL_WIDTH + ((now - globalMinDate)/86400000)*DAY_PX}px`;
