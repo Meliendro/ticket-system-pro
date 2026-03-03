@@ -17,10 +17,11 @@
         
         .track-container { position: relative; flex-grow: 1; height: 95px; width: 100%; }
         
+        /* Baseline Bianca dinamica */
         .baseline-ticket {
-            position: absolute; height: 8px; background: rgba(255, 255, 255, 0.9);
-            border-radius: 20px; top: 40px; z-index: 5; pointer-events: none;
-            border: 1px solid white; box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+            position: absolute; height: 6px; background: rgba(255, 255, 255, 0.4);
+            border-radius: 20px; top: 41px; z-index: 5; pointer-events: none;
+            border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
         }
 
         .seg-bar { 
@@ -104,7 +105,6 @@
     const COL_WIDTH = 250;
     let myChart = null;
     let globalMinDate = new Date();
-    globalMinDate.setDate(globalMinDate.getDate() - 10);
 
     async function loadGantt() {
         try {
@@ -133,7 +133,7 @@
         let delayCount = 0;
         let stats = { 'Nuovo': 0, 'In Lavorazione': 0, 'Risolto': 0, 'Verificato': 0, 'Accettato': 0, 'Chiuso': 0, 'Altro': 0 };
 
-        const totalDays = 180;
+        const totalDays = 200;
         header.innerHTML = `<div class="sticky-col h-full border-r border-slate-700"></div>` + 
             Array.from({length: totalDays}, (_, i) => {
                 let d = new Date(globalMinDate); d.setDate(d.getDate() + i);
@@ -173,12 +173,17 @@
 
             const track = document.getElementById(trackId);
             const dStart = t.data_inserimento ? new Date(t.data_inserimento) : now;
+            // Se chiuso usa data chiusura, altrimenti usa OGGI per far proseguire la linea
+            const dEndBaseline = t.datachiuso ? new Date(t.datachiuso) : now;
             
-            // Baseline
+            // Baseline Bianca (Durata totale ticket)
             const bl = document.createElement('div');
             bl.className = "baseline-ticket";
-            bl.style.left = `${((dStart - globalMinDate)/86400000)*DAY_PX}px`;
-            bl.style.width = "100px";
+            const leftPos = ((dStart - globalMinDate)/86400000)*DAY_PX;
+            const widthBaseline = ((dEndBaseline - dStart)/86400000)*DAY_PX;
+            
+            bl.style.left = `${leftPos}px`;
+            bl.style.width = `${Math.max(10, widthBaseline)}px`;
             track.appendChild(bl);
 
             const map = [
