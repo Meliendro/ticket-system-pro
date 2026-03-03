@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RIVIT ADVANCED GANTT | Dashboard & Analytics</title>
+    <title>Enterprise Gantt System | Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -42,7 +42,6 @@
         .sticky-col { position: sticky; left: 0; z-index: 100; background: #1e293b; border-right: 3px solid #3b82f6; min-width: 250px; box-shadow: 10px 0 15px -10px rgba(0,0,0,0.5); }
         .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 150; pointer-events: none; }
         
-        /* Stats Styles */
         .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 20px; }
     </style>
 </head>
@@ -51,22 +50,22 @@
 <div class="max-w-[1900px] mx-auto">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="stat-card flex flex-col justify-center items-center border-l-8 border-red-500">
-            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">Ticket in Ritardo</h3>
+            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">Scadenze Superate</h3>
             <span id="delay-count" class="text-5xl font-black text-white">0</span>
-            <p class="text-[10px] text-red-400 mt-2 font-bold animate-pulse">AZIONE RICHIESTA</p>
+            <p class="text-[10px] text-red-400 mt-2 font-bold animate-pulse">ATTENZIONE RICHIESTA</p>
         </div>
 
         <div class="stat-card flex flex-col items-center">
-            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">Distribuzione Stati</h3>
+            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">Stato Avanzamento Task</h3>
             <div class="w-full h-32 flex justify-center">
                 <canvas id="stateChart"></canvas>
             </div>
         </div>
 
         <div class="stat-card flex flex-col justify-center border-l-8 border-blue-500">
-            <h1 class="text-2xl font-black italic text-white uppercase tracking-tighter">RIVIT <span class="text-blue-500">GANTT 4.0</span></h1>
+            <h1 class="text-2xl font-black italic text-white uppercase tracking-tighter">PROJECT <span class="text-blue-500">CONTROL HUB</span></h1>
             <button onclick="loadGantt()" class="mt-4 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-xl font-bold transition-all text-sm uppercase">
-                <i class="fas fa-sync mr-2"></i>Sincronizza Dati
+                <i class="fas fa-sync mr-2"></i>Aggiorna Dati
             </button>
         </div>
     </div>
@@ -119,7 +118,7 @@
             row.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
 
             row.innerHTML = `<div class="sticky-col flex items-center px-6 border-r border-slate-700 z-[100]">
-                <div><div class="font-black text-blue-500 text-xs">#${t.id}</div><div class="font-bold text-white text-[10px] uppercase truncate w-40">${t.titolo || 'TICKET'}</div></div>
+                <div><div class="font-black text-blue-500 text-xs">#${t.id}</div><div class="font-bold text-white text-[10px] uppercase truncate w-40">${t.titolo || 'TASK'}</div></div>
                 </div><div class="flex-grow relative track-container" id="track-${t.id}"></div>`;
             content.appendChild(row);
 
@@ -180,7 +179,12 @@
                     borderWidth: 0
                 }]
             },
-            options: { plugins: { legend: { display: false } }, cutout: '70%' }
+            options: { 
+                plugins: { legend: { display: false } }, 
+                cutout: '70%',
+                responsive: true,
+                maintainAspectRatio: false
+            }
         });
     }
 
