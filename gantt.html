@@ -13,47 +13,49 @@
         
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; margin: 0; }
         .gantt-viewport { overflow-x: auto; background: #1e293b; border-radius: 24px; border: 1px solid #334155; height: 650px; }
-        .row-height { min-height: 120px; border-bottom: 1px solid #334155; position: relative; display: flex; align-items: center; }
+        .row-height { min-height: 125px; border-bottom: 1px solid #334155; position: relative; display: flex; align-items: center; }
         
-        .track-container { position: relative; width: 100%; height: 90px; }
+        .track-container { position: relative; width: 100%; height: 95px; }
         
-        /* Linea di fondo (Binario del Ticket) */
+        /* Linea di fondo (Binario del Ticket) potenziata */
         .baseline-ticket {
             position: absolute;
-            height: 6px;
-            background: #334155;
-            border-radius: 10px;
-            top: 42px; 
+            height: 8px;
+            background: #0f172a;
+            border-radius: 20px;
+            top: 40px; 
             z-index: 5;
             pointer-events: none;
-            border: 1px solid rgba(255,255,255,0.05);
+            border: 1px solid #334155;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
         }
 
         /* Barre di Stato */
         .seg-bar { 
-            position: absolute; height: 24px; border-radius: 6px; z-index: 20; cursor: help;
+            position: absolute; height: 26px; border-radius: 6px; z-index: 20; cursor: help;
             border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center;
-            padding: 0 8px; font-size: 9px; font-weight: 800; text-transform: uppercase;
+            padding: 0 10px; font-size: 9px; font-weight: 800; text-transform: uppercase;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
-        .seg-bar:hover { transform: scaleY(1.15); z-index: 60; outline: 2px solid white; box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
+        .seg-bar:hover { transform: scale(1.05); z-index: 60; outline: 2px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
 
-        .pos-0 { top: 6px; } .pos-1 { top: 33px; } .pos-2 { top: 60px; }
+        .pos-0 { top: 4px; } .pos-1 { top: 31px; } .pos-2 { top: 58px; }
 
         /* Delay Pattern */
         .delay-fill {
-            background: repeating-linear-gradient(45deg, #ef4444, #ef4444 10px, #b91c1c 10px, #b91c1c 20px);
+            background: repeating-linear-gradient(45deg, #ef4444, #ef4444 12px, #991b1b 12px, #991b1b 24px);
             border: 1px solid #f87171; animation: pulse-red 2s infinite; z-index: 15;
         }
 
-        @keyframes pulse-red { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+        @keyframes pulse-red { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
 
         .st-nuovo { background: #3b82f6; } .st-lavorazione { background: #f59e0b; }
         .st-risolto { background: #10b981; } .st-verificato { background: #8b5cf6; }
         .st-accettato { background: #ec4899; } .st-chiuso { background: #64748b; }
 
         .timeline-cell { min-width: 50px; text-align: center; font-size: 10px; color: #64748b; border-right: 1px solid #334155; padding: 14px 0; font-family: 'JetBrains Mono', monospace; }
-        .sticky-col { position: sticky; left: 0; z-index: 100; background: #1e293b; border-right: 4px solid #3b82f6; min-width: 250px; box-shadow: 10px 0 20px -5px rgba(0,0,0,0.7); }
+        .sticky-col { position: sticky; left: 0; z-index: 100; background: #1e293b; border-right: 4px solid #3b82f6; min-width: 250px; box-shadow: 10px 0 20px rgba(0,0,0,0.5); }
         .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 150; pointer-events: none; }
         
         .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 24px; min-height: 200px; }
@@ -66,7 +68,7 @@
         <div class="stat-card flex flex-col justify-center items-center border-l-8 border-red-600 shadow-xl">
             <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">SLA Superati</h3>
             <span id="delay-count" class="text-6xl font-black text-white mt-2">0</span>
-            <p class="text-[10px] text-red-500 mt-3 font-bold animate-pulse">INTERVENTO IMMEDIATO</p>
+            <p class="text-[10px] text-red-500 mt-3 font-bold animate-pulse tracking-widest uppercase">Rilevati</p>
         </div>
 
         <div class="stat-card flex flex-col items-center justify-between">
@@ -79,7 +81,7 @@
         <div class="stat-card flex flex-col justify-center border-l-8 border-blue-600 shadow-xl px-10">
             <h1 class="text-2xl font-black italic text-white uppercase tracking-tighter">PROJECT <span class="text-blue-500">CONTROL HUB</span></h1>
             <button onclick="loadGantt()" class="mt-6 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black transition-all text-xs uppercase shadow-lg flex items-center justify-center">
-                <i class="fas fa-sync-alt mr-3 text-sm"></i>Sincronizza Database
+                <i class="fas fa-sync-alt mr-3 text-sm"></i>Aggiorna Dati
             </button>
         </div>
     </div>
@@ -100,15 +102,12 @@
     let myChart = null;
 
     async function loadGantt() {
-        console.log("Inizio caricamento dati...");
         try {
             const { data: tickets, error } = await client.from('tickets').select('*');
             if (error) throw error;
-            console.log("Dati ricevuti:", tickets);
             render(tickets);
         } catch (err) {
-            console.error("Errore critico:", err);
-            alert("Errore nel caricamento dei dati. Controlla la console.");
+            console.error("Errore:", err);
         }
     }
 
@@ -119,18 +118,18 @@
         let delayCounter = 0;
         let stateCounts = { nuovo: 0, lavorazione: 0, risolto: 0, verificato: 0, accettato: 0, chiuso: 0 };
         
-        // Calcolo data minima
         let minDate = new Date();
-        minDate.setDate(minDate.getDate() - 10);
+        minDate.setDate(minDate.getDate() - 15);
         tickets.forEach(t => {
-            if (t.data_inserimento) {
-                const d = new Date(t.data_inserimento);
-                if (d < minDate) minDate = d;
+            const dates = [t.data_inserimento, t.datanuovo, t.datainlavorazione].filter(d => d).map(d => new Date(d));
+            if (dates.length > 0) {
+                const earliest = new Date(Math.min(...dates));
+                if (earliest < minDate) minDate = earliest;
             }
         });
         minDate.setHours(0,0,0,0);
 
-        const totalDays = 90; // Esteso per visibilità
+        const totalDays = 90;
         let hHtml = `<div class="sticky-col h-full border-r border-slate-700"></div>`;
         for (let i = 0; i < totalDays; i++) {
             let d = new Date(minDate); d.setDate(d.getDate() + i);
@@ -140,11 +139,7 @@
         header.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
 
         content.innerHTML = '';
-        
-        if (!tickets || tickets.length === 0) {
-            content.innerHTML = '<div class="p-10 text-center text-slate-500">Nessun ticket trovato nel database.</div>';
-            return;
-        }
+        if (!tickets || tickets.length === 0) return;
 
         tickets.forEach(t => {
             const row = document.createElement('div');
@@ -152,20 +147,26 @@
             row.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
 
             row.innerHTML = `<div class="sticky-col flex items-center px-8 border-r border-slate-700 z-[100]">
-                <div><div class="font-black text-blue-500 text-sm">#${t.id}</div><div class="font-bold text-white text-[11px] uppercase truncate w-44">${t.titolo || 'TASK'}</div></div>
+                <div><div class="font-black text-blue-500 text-sm">#${t.id}</div><div class="font-bold text-white text-[11px] uppercase truncate w-44">${t.titolo || 'N/A'}</div></div>
                 </div><div class="flex-grow relative track-container" id="track-${t.id}"></div>`;
             content.appendChild(row);
 
             const track = document.getElementById(`track-${t.id}`);
 
-            // 1. Linea Base
-            const dStartTicket = t.data_inserimento ? new Date(t.data_inserimento) : null;
-            if (dStartTicket) {
-                const dEndTicket = t.datachiuso ? new Date(t.datachiuso) : now;
+            // LINEA BASE ROBUSTA
+            const allDates = [
+                t.data_inserimento, t.datanuovo, t.datainlavorazione, t.datarisolto, 
+                t.dataverificato, t.dataaccettato, t.datachiuso
+            ].filter(d => d).map(d => new Date(d));
+
+            if (allDates.length > 0) {
+                const dStart = new Date(Math.min(...allDates));
+                const dEnd = t.datachiuso ? new Date(t.datachiuso) : now;
+                
                 const baseLine = document.createElement('div');
                 baseLine.className = "baseline-ticket";
-                baseLine.style.left = `${((dStartTicket - minDate)/86400000)*DAY_PX}px`;
-                baseLine.style.width = `${Math.max(10, ((dEndTicket - dStartTicket)/86400000)*DAY_PX)}px`;
+                baseLine.style.left = `${((dStart - minDate)/86400000)*DAY_PX}px`;
+                baseLine.style.width = `${Math.max(20, ((dEnd - dStart)/86400000)*DAY_PX)}px`;
                 track.appendChild(baseLine);
             }
 
@@ -178,7 +179,6 @@
                 {start:'datachiuso', end:'datachiusos', label:'Chiuso', class:'st-chiuso', key:'chiuso'}
             ];
 
-            // Identifica stato attivo
             const activeStates = mapping.filter(m => t[m.start]).map(m => ({...m, d: new Date(t[m.start])}));
             activeStates.sort((a,b) => b.d - a.d);
             const currentStateKey = activeStates.length > 0 ? activeStates[0].start : null;
@@ -187,7 +187,7 @@
             mapping.forEach((m, idx) => {
                 if(t[m.start] && t[m.end]) {
                     const dS = new Date(t[m.start]), dE = new Date(t[m.end]);
-                    if (isNaN(dS) || isNaN(dE)) return;
+                    if (isNaN(dS.getTime()) || isNaN(dE.getTime())) return;
 
                     const bar = document.createElement('div');
                     bar.className = `seg-bar ${m.class} pos-${idx % 3}`;
@@ -220,25 +220,18 @@
     function updateChart(counts) {
         const ctx = document.getElementById('stateChart').getContext('2d');
         const dataValues = [counts.nuovo, counts.lavorazione, counts.risolto, counts.verificato, counts.accettato, counts.chiuso];
-        const hasData = dataValues.some(v => v > 0);
-
         if (myChart) myChart.destroy();
         myChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: ['Nuovo', 'Lavorazione', 'Risolto', 'Verificato', 'Accettato', 'Chiuso'],
                 datasets: [{
-                    data: hasData ? dataValues : [1],
-                    backgroundColor: hasData ? ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#64748b'] : ['#334155'],
+                    data: dataValues,
+                    backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#64748b'],
                     borderWidth: 0
                 }]
             },
-            options: { 
-                plugins: { legend: { display: false } }, 
-                cutout: '80%',
-                responsive: true,
-                maintainAspectRatio: false
-            }
+            options: { plugins: { legend: { display: false } }, cutout: '80%', responsive: true, maintainAspectRatio: false }
         });
     }
 </script>
