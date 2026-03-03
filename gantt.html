@@ -17,17 +17,17 @@
         
         .track-container { position: relative; width: 100%; height: 95px; }
         
-        /* Linea di fondo (Binario del Ticket) - BIANCA */
+        /* Linea di fondo (Binario del Ticket) - BIANCA ALTA VISIBILITÀ */
         .baseline-ticket {
             position: absolute;
             height: 8px;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
             top: 40px; 
             z-index: 5;
             pointer-events: none;
-            border: 1px solid white;
-            box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+            border: 1px solid #ffffff;
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
         }
 
         /* Barre di Stato */
@@ -56,28 +56,26 @@
         .timeline-cell { min-width: 50px; text-align: center; font-size: 10px; color: #64748b; border-right: 1px solid #334155; padding: 14px 0; font-family: 'JetBrains Mono', monospace; }
         .sticky-col { position: sticky; left: 0; z-index: 100; background: #1e293b; border-right: 4px solid #3b82f6; min-width: 250px; box-shadow: 10px 0 20px rgba(0,0,0,0.5); }
         .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 150; pointer-events: none; }
-        
-        .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 24px; min-height: 200px; }
     </style>
 </head>
 <body class="p-8" onload="loadGantt()">
 
 <div class="max-w-[1900px] mx-auto">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-        <div class="stat-card flex flex-col justify-center items-center border-l-8 border-red-600 shadow-xl">
+        <div class="bg-[#1e293b] border border-slate-700 rounded-[20px] p-6 flex flex-col justify-center items-center border-l-8 border-red-600 shadow-xl">
             <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">SLA Superati</h3>
             <span id="delay-count" class="text-6xl font-black text-white mt-2">0</span>
         </div>
-        <div class="stat-card flex flex-col items-center justify-between">
-            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">Avanzamento Globale</h3>
+        <div class="bg-[#1e293b] border border-slate-700 rounded-[20px] p-6 flex flex-col items-center justify-between">
+            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">Stato Task</h3>
             <div class="relative w-full h-36 flex justify-center items-center">
                 <canvas id="stateChart"></canvas>
             </div>
         </div>
-        <div class="stat-card flex flex-col justify-center border-l-8 border-blue-600 shadow-xl px-10">
-            <h1 class="text-2xl font-black italic text-white uppercase tracking-tighter">PROJECT <span class="text-blue-500">CONTROL HUB</span></h1>
+        <div class="bg-[#1e293b] border border-slate-700 rounded-[20px] p-6 flex flex-col justify-center border-l-8 border-blue-600 shadow-xl px-10">
+            <h1 class="text-2xl font-black italic text-white uppercase tracking-tighter">PROJECT <span class="text-blue-500">CONTROL</span></h1>
             <button onclick="loadGantt()" class="mt-6 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black transition-all text-xs uppercase shadow-lg flex items-center justify-center">
-                <i class="fas fa-sync-alt mr-3 text-sm"></i>Aggiorna Dati
+                <i class="fas fa-sync-alt mr-3"></i>Aggiorna
             </button>
         </div>
     </div>
@@ -102,15 +100,10 @@
             const { data: tickets, error } = await client.from('tickets').select('*');
             if (error) throw error;
             
-            // ORDINAMENTO DECRESCENTE (ID o Data più recente)
-            if (tickets && tickets.length > 0) {
-                tickets.sort((a, b) => b.id - a.id); // Ordinamento primario per ID decrescente
-            }
-
-            render(tickets);
-        } catch (err) {
-            console.error("Errore:", err);
-        }
+            // ORDINAMENTO DECRESCENTE RIGOROSO
+            const sortedTickets = tickets.sort((a, b) => (parseInt(b.id) || 0) - (parseInt(a.id) || 0));
+            render(sortedTickets);
+        } catch (err) { console.error("Errore caricamento:", err); }
     }
 
     function render(tickets) {
@@ -118,13 +111,14 @@
         const content = document.getElementById('gantt-content');
         const now = new Date();
         let delayCounter = 0;
-        let stateCounts = { nuovo: 0, lavorazione: 0, risolto: 0, verificato: 0, accettato: 0, chiuso: 0 };
+        let stateCounts = { nuovo:0, lavorazione:0, risolto:0, verificato:0, accettato:0, chiuso:0 };
         
+        // Calcolo minDate robusto
         let minDate = new Date();
         minDate.setDate(minDate.getDate() - 15);
         tickets.forEach(t => {
-            const d = t.data_inserimento ? new Date(t.data_inserimento) : new Date();
-            if (d < minDate) minDate = d;
+            const d = t.data_inserimento ? new Date(t.data_inserimento) : null;
+            if (d && !isNaN(d) && d < minDate) minDate = d;
         });
         minDate.setHours(0,0,0,0);
 
@@ -142,24 +136,12 @@
             const row = document.createElement('div');
             row.className = "flex row-height relative hover:bg-slate-800/40 transition-colors";
             row.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
-
             row.innerHTML = `<div class="sticky-col flex items-center px-8 border-r border-slate-700 z-[100]">
                 <div><div class="font-black text-blue-500 text-sm">#${t.id}</div><div class="font-bold text-white text-[11px] uppercase truncate w-44">${t.titolo || 'N/A'}</div></div>
                 </div><div class="flex-grow relative track-container" id="track-${t.id}"></div>`;
             content.appendChild(row);
 
             const track = document.getElementById(`track-${t.id}`);
-
-            // LINEA BIANCA DI FONDO (Binario sempre presente)
-            const dStart = t.data_inserimento ? new Date(t.data_inserimento) : new Date();
-            const dEnd = t.datachiuso ? new Date(t.datachiuso) : now;
-            
-            const baseLine = document.createElement('div');
-            baseLine.className = "baseline-ticket";
-            baseLine.style.left = `${((dStart - minDate)/86400000)*DAY_PX}px`;
-            baseLine.style.width = `${Math.max(30, ((dEnd - dStart)/86400000)*DAY_PX)}px`;
-            track.appendChild(baseLine);
-
             const mapping = [
                 {start:'datanuovo', end:'datanuovos', label:'Nuovo', class:'st-nuovo', key:'nuovo'},
                 {start:'datainlavorazione', end:'datainlavoraziones', label:'Lavorazione', class:'st-lavorazione', key:'lavorazione'},
@@ -169,13 +151,34 @@
                 {start:'datachiuso', end:'datachiusos', label:'Chiuso', class:'st-chiuso', key:'chiuso'}
             ];
 
-            const activeStates = mapping.filter(m => t[m.start]).map(m => ({...m, d: new Date(t[m.start])}));
+            // 1. CALCOLO LINEA BASE RESILIENTE
+            const validDates = [
+                t.data_inserimento, t.datanuovo, t.datainlavorazione, t.datarisolto, 
+                t.dataverificato, t.dataaccettato, t.datachiuso
+            ].filter(d => d && !isNaN(new Date(d).getTime())).map(d => new Date(d));
+
+            if (validDates.length > 0) {
+                const dStart = new Date(Math.min(...validDates));
+                const dEnd = (t.datachiuso && !isNaN(new Date(t.datachiuso))) ? new Date(t.datachiuso) : now;
+                
+                const baseLine = document.createElement('div');
+                baseLine.className = "baseline-ticket";
+                baseLine.style.left = `${((dStart - minDate)/86400000)*DAY_PX}px`;
+                baseLine.style.width = `${Math.max(25, ((dEnd - dStart)/86400000)*DAY_PX)}px`;
+                track.appendChild(baseLine);
+            }
+
+            // 2. DISEGNO BARRE STATI
+            const activeStates = mapping.filter(m => t[m.start] && !isNaN(new Date(t[m.start]).getTime()))
+                                        .map(m => ({...m, d: new Date(t[m.start])}));
             activeStates.sort((a,b) => b.d - a.d);
             if(activeStates.length > 0) stateCounts[activeStates[0].key]++;
 
             mapping.forEach((m, idx) => {
                 if(t[m.start] && t[m.end]) {
                     const dS = new Date(t[m.start]), dE = new Date(t[m.end]);
+                    if(isNaN(dS) || isNaN(dE)) return;
+
                     const bar = document.createElement('div');
                     bar.className = `seg-bar ${m.class} pos-${idx % 3}`;
                     bar.style.left = `${((dS - minDate)/86400000)*DAY_PX}px`;
