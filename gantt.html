@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise Gantt System | Pro Edition</title>
+    <title>Enterprise Gantt System | Ultra Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,74 +12,77 @@
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
         
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; margin: 0; }
-        .gantt-viewport { overflow-x: auto; background: #1e293b; border-radius: 24px; border: 1px solid #334155; height: 600px; }
-        .row-height { min-height: 110px; border-bottom: 1px solid #334155; position: relative; display: flex; align-items: center; }
+        .gantt-viewport { overflow-x: auto; background: #1e293b; border-radius: 24px; border: 1px solid #334155; height: 650px; }
+        .row-height { min-height: 120px; border-bottom: 1px solid #334155; position: relative; display: flex; align-items: center; }
         
-        /* Contenitore tracce */
-        .track-container { position: relative; width: 100%; height: 85px; margin-top: 5px; }
+        .track-container { position: relative; width: 100%; height: 90px; }
         
-        /* Linea di fondo che unisce tutto il ticket */
+        /* Linea di fondo (Binario del Ticket) */
         .baseline-ticket {
             position: absolute;
-            height: 4px;
-            background: rgba(71, 85, 105, 0.3);
-            border-radius: 2px;
-            top: 40px; /* Centrata rispetto alle barre pos-1 */
+            height: 6px;
+            background: #334155;
+            border-radius: 10px;
+            top: 42px; 
             z-index: 5;
             pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.05);
         }
 
         /* Barre di Stato */
         .seg-bar { 
-            position: absolute; height: 22px; border-radius: 4px; z-index: 20; cursor: help;
+            position: absolute; height: 24px; border-radius: 6px; z-index: 20; cursor: help;
             border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center;
-            padding: 0 6px; font-size: 8px; font-weight: 800; text-transform: uppercase;
-            transition: all 0.2s;
+            padding: 0 8px; font-size: 9px; font-weight: 800; text-transform: uppercase;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .seg-bar:hover { transform: scale(1.05); z-index: 50; outline: 2px solid white; box-shadow: 0 0 15px rgba(255,255,255,0.2); }
+        .seg-bar:hover { transform: scaleY(1.15); z-index: 60; outline: 2px solid white; box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
 
-        .pos-0 { top: 5px; } .pos-1 { top: 30px; } .pos-2 { top: 55px; }
+        .pos-0 { top: 6px; } .pos-1 { top: 33px; } .pos-2 { top: 60px; }
 
+        /* Delay Pattern */
         .delay-fill {
-            background: repeating-linear-gradient(45deg, rgba(239, 68, 68, 0.7), rgba(239, 68, 68, 0.7) 10px, rgba(153, 27, 27, 0.7) 10px, rgba(153, 27, 27, 0.7) 20px);
-            border: 1px solid #ef4444; animation: pulse-red 2s infinite; z-index: 15;
+            background: repeating-linear-gradient(45deg, #ef4444, #ef4444 10px, #b91c1c 10px, #b91c1c 20px);
+            border: 1px solid #f87171; animation: pulse-red 2s infinite; z-index: 15;
         }
 
-        @keyframes pulse-red { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+        @keyframes pulse-red { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
 
         .st-nuovo { background: #3b82f6; } .st-lavorazione { background: #f59e0b; }
         .st-risolto { background: #10b981; } .st-verificato { background: #8b5cf6; }
         .st-accettato { background: #ec4899; } .st-chiuso { background: #64748b; }
 
-        .timeline-cell { min-width: 50px; text-align: center; font-size: 10px; color: #64748b; border-right: 1px solid #334155; padding: 12px 0; font-family: 'JetBrains Mono', monospace; }
-        .sticky-col { position: sticky; left: 0; z-index: 100; background: #1e293b; border-right: 3px solid #3b82f6; min-width: 250px; box-shadow: 10px 0 15px -10px rgba(0,0,0,0.5); }
+        .timeline-cell { min-width: 50px; text-align: center; font-size: 10px; color: #64748b; border-right: 1px solid #334155; padding: 14px 0; font-family: 'JetBrains Mono', monospace; }
+        .sticky-col { position: sticky; left: 0; z-index: 100; background: #1e293b; border-right: 4px solid #3b82f6; min-width: 250px; box-shadow: 10px 0 20px -5px rgba(0,0,0,0.7); }
         .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 150; pointer-events: none; }
+        .today-line::after { content: ''; position: absolute; top: 0; left: -4px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid #ef4444; }
         
-        .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 20px; min-height: 180px; }
+        .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 24px; min-height: 200px; transition: border-color 0.3s; }
+        .stat-card:hover { border-color: #475569; }
     </style>
 </head>
-<body class="p-6">
+<body class="p-8">
 
 <div class="max-w-[1900px] mx-auto">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="stat-card flex flex-col justify-center items-center border-l-8 border-red-500 shadow-lg">
-            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">Scadenze Superate</h3>
-            <span id="delay-count" class="text-5xl font-black text-white mt-2">0</span>
-            <p class="text-[10px] text-red-400 mt-2 font-bold animate-pulse tracking-tighter">ATTENZIONE RICHIESTA</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+        <div class="stat-card flex flex-col justify-center items-center border-l-8 border-red-600 shadow-xl">
+            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">SLA Superati</h3>
+            <span id="delay-count" class="text-6xl font-black text-white mt-2">0</span>
+            <p class="text-[10px] text-red-500 mt-3 font-bold animate-pulse">INTERVENTO IMMEDIATO</p>
         </div>
 
         <div class="stat-card flex flex-col items-center justify-between">
-            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">Stato Avanzamento Task</h3>
-            <div class="relative w-full h-32 flex justify-center items-center">
+            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">Avanzamento Globale</h3>
+            <div class="relative w-full h-36 flex justify-center items-center">
                 <canvas id="stateChart"></canvas>
             </div>
         </div>
 
-        <div class="stat-card flex flex-col justify-center border-l-8 border-blue-500 shadow-lg px-8">
+        <div class="stat-card flex flex-col justify-center border-l-8 border-blue-600 shadow-xl px-10">
             <h1 class="text-2xl font-black italic text-white uppercase tracking-tighter">PROJECT <span class="text-blue-500">CONTROL HUB</span></h1>
-            <p class="text-slate-500 text-[10px] font-bold mt-1">SISTEMA DI MONITORAGGIO INTEGRATO</p>
-            <button onclick="loadGantt()" class="mt-5 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold transition-all text-xs uppercase shadow-md active:scale-95">
-                <i class="fas fa-sync-alt mr-2"></i>Aggiorna Dati Real-time
+            <p class="text-slate-500 text-[10px] font-bold mt-1 tracking-widest">MONITORAGGIO FLUSSI ATTIVI</p>
+            <button onclick="loadGantt()" class="mt-6 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black transition-all text-xs uppercase shadow-lg active:scale-95 flex items-center justify-center">
+                <i class="fas fa-sync-alt mr-3 text-sm"></i>Sincronizza Database
             </button>
         </div>
     </div>
@@ -112,8 +115,11 @@
         let stateCounts = { nuovo: 0, lavorazione: 0, risolto: 0, verificato: 0, accettato: 0, chiuso: 0 };
         
         let minDate = new Date();
-        minDate.setDate(minDate.getDate() - 5);
-        tickets.forEach(t => { if(t.data_inserimento && new Date(t.data_inserimento) < minDate) minDate = new Date(t.data_inserimento); });
+        minDate.setDate(minDate.getDate() - 7); // Una settimana di buffer
+        tickets.forEach(t => { 
+            const dIns = t.data_inserimento ? new Date(t.data_inserimento) : null;
+            if(dIns && dIns < minDate) minDate = dIns; 
+        });
         minDate.setHours(0,0,0,0);
 
         const totalDays = 60;
@@ -131,10 +137,21 @@
             row.className = "flex row-height relative hover:bg-slate-800/40 transition-colors";
             row.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
 
-            row.innerHTML = `<div class="sticky-col flex items-center px-6 border-r border-slate-700 z-[100]">
-                <div><div class="font-black text-blue-500 text-xs">#${t.id}</div><div class="font-bold text-white text-[10px] uppercase truncate w-40">${t.titolo || 'TASK'}</div></div>
+            row.innerHTML = `<div class="sticky-col flex items-center px-8 border-r border-slate-700 z-[100]">
+                <div><div class="font-black text-blue-500 text-sm">#${t.id}</div><div class="font-bold text-white text-[11px] uppercase truncate w-44">${t.titolo || 'TASK SENEZA TITOLO'}</div></div>
                 </div><div class="flex-grow relative track-container" id="track-${t.id}"></div>`;
             content.appendChild(row);
+
+            // 1. Logica Linea Base (Binario) - Sempre presente se c'è data_inserimento
+            const dStartTicket = t.data_inserimento ? new Date(t.data_inserimento) : null;
+            if (dStartTicket) {
+                const dEndTicket = t.datachiuso ? new Date(t.datachiuso) : now;
+                const baseLine = document.createElement('div');
+                baseLine.className = "baseline-ticket";
+                baseLine.style.left = `${((dStartTicket - minDate)/86400000)*DAY_PX}px`;
+                baseLine.style.width = `${((dEndTicket - dStartTicket)/86400000)*DAY_PX}px`;
+                document.getElementById(`track-${t.id}`).appendChild(baseLine);
+            }
 
             const mapping = [
                 {start:'datanuovo', end:'datanuovos', label:'Nuovo', class:'st-nuovo', key:'nuovo'},
@@ -148,20 +165,6 @@
             const activeStates = mapping.filter(m => t[m.start]).map(m => ({...m, d: new Date(t[m.start])}));
             activeStates.sort((a,b) => b.d - a.d);
             const currentStateKey = activeStates.length > 0 ? activeStates[0].start : null;
-            
-            // Calcolo per la linea di fondo (Base-line)
-            const allValidDates = mapping.flatMap(m => [t[m.start], t[m.end]]).filter(d => d).map(d => new Date(d));
-            if (allValidDates.length > 0) {
-                const firstD = new Date(Math.min(...allValidDates));
-                const lastD = t.datachiuso ? new Date(t.datachiuso) : (new Date(Math.max(...allValidDates, now)));
-                
-                const baseLine = document.createElement('div');
-                baseLine.className = "baseline-ticket";
-                baseLine.style.left = `${((firstD - minDate)/86400000)*DAY_PX}px`;
-                baseLine.style.width = `${((lastD - firstD)/86400000)*DAY_PX}px`;
-                document.getElementById(`track-${t.id}`).appendChild(baseLine);
-            }
-
             if(activeStates.length > 0) stateCounts[activeStates[0].key]++;
 
             mapping.forEach((m, idx) => {
@@ -192,38 +195,4 @@
         const tLine = document.createElement('div');
         tLine.className = "today-line";
         tLine.style.left = `${COL_WIDTH + ((now - minDate)/86400000)*DAY_PX}px`;
-        content.appendChild(tLine);
-    }
-
-    function updateChart(counts) {
-        const ctx = document.getElementById('stateChart').getContext('2d');
-        const dataValues = Object.values(counts);
-        const hasData = dataValues.some(v => v > 0);
-
-        if (myChart) myChart.destroy();
-        
-        myChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Nuovo', 'Lavorazione', 'Risolto', 'Verificato', 'Accettato', 'Chiuso'],
-                datasets: [{
-                    data: hasData ? dataValues : [1], // Se non c'è dato, mostra un cerchio vuoto grigio
-                    backgroundColor: hasData ? ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#64748b'] : ['#334155'],
-                    borderWidth: 0,
-                    hoverOffset: 4
-                }]
-            },
-            options: { 
-                plugins: { legend: { display: false } }, 
-                cutout: '75%',
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: { animateScale: true }
-            }
-        });
-    }
-
-    loadGantt();
-</script>
-</body>
-</html>
+        content.appendChild(
