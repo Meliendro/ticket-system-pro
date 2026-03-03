@@ -55,13 +55,11 @@
         .timeline-cell { min-width: 50px; text-align: center; font-size: 10px; color: #64748b; border-right: 1px solid #334155; padding: 14px 0; font-family: 'JetBrains Mono', monospace; }
         .sticky-col { position: sticky; left: 0; z-index: 100; background: #1e293b; border-right: 4px solid #3b82f6; min-width: 250px; box-shadow: 10px 0 20px -5px rgba(0,0,0,0.7); }
         .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 150; pointer-events: none; }
-        .today-line::after { content: ''; position: absolute; top: 0; left: -4px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid #ef4444; }
         
-        .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 24px; min-height: 200px; transition: border-color 0.3s; }
-        .stat-card:hover { border-color: #475569; }
+        .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 24px; min-height: 200px; }
     </style>
 </head>
-<body class="p-8">
+<body class="p-8" onload="loadGantt()">
 
 <div class="max-w-[1900px] mx-auto">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
@@ -80,8 +78,7 @@
 
         <div class="stat-card flex flex-col justify-center border-l-8 border-blue-600 shadow-xl px-10">
             <h1 class="text-2xl font-black italic text-white uppercase tracking-tighter">PROJECT <span class="text-blue-500">CONTROL HUB</span></h1>
-            <p class="text-slate-500 text-[10px] font-bold mt-1 tracking-widest">MONITORAGGIO FLUSSI ATTIVI</p>
-            <button onclick="loadGantt()" class="mt-6 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black transition-all text-xs uppercase shadow-lg active:scale-95 flex items-center justify-center">
+            <button onclick="loadGantt()" class="mt-6 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black transition-all text-xs uppercase shadow-lg flex items-center justify-center">
                 <i class="fas fa-sync-alt mr-3 text-sm"></i>Sincronizza Database
             </button>
         </div>
@@ -103,8 +100,16 @@
     let myChart = null;
 
     async function loadGantt() {
-        const { data: tickets, error } = await client.from('tickets').select('*');
-        if (!error) render(tickets);
+        console.log("Inizio caricamento dati...");
+        try {
+            const { data: tickets, error } = await client.from('tickets').select('*');
+            if (error) throw error;
+            console.log("Dati ricevuti:", tickets);
+            render(tickets);
+        } catch (err) {
+            console.error("Errore critico:", err);
+            alert("Errore nel caricamento dei dati. Controlla la console.");
+        }
     }
 
     function render(tickets) {
@@ -114,15 +119,18 @@
         let delayCounter = 0;
         let stateCounts = { nuovo: 0, lavorazione: 0, risolto: 0, verificato: 0, accettato: 0, chiuso: 0 };
         
+        // Calcolo data minima
         let minDate = new Date();
-        minDate.setDate(minDate.getDate() - 7); // Una settimana di buffer
-        tickets.forEach(t => { 
-            const dIns = t.data_inserimento ? new Date(t.data_inserimento) : null;
-            if(dIns && dIns < minDate) minDate = dIns; 
+        minDate.setDate(minDate.getDate() - 10);
+        tickets.forEach(t => {
+            if (t.data_inserimento) {
+                const d = new Date(t.data_inserimento);
+                if (d < minDate) minDate = d;
+            }
         });
         minDate.setHours(0,0,0,0);
 
-        const totalDays = 60;
+        const totalDays = 90; // Esteso per visibilità
         let hHtml = `<div class="sticky-col h-full border-r border-slate-700"></div>`;
         for (let i = 0; i < totalDays; i++) {
             let d = new Date(minDate); d.setDate(d.getDate() + i);
@@ -132,25 +140,33 @@
         header.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
 
         content.innerHTML = '';
+        
+        if (!tickets || tickets.length === 0) {
+            content.innerHTML = '<div class="p-10 text-center text-slate-500">Nessun ticket trovato nel database.</div>';
+            return;
+        }
+
         tickets.forEach(t => {
             const row = document.createElement('div');
             row.className = "flex row-height relative hover:bg-slate-800/40 transition-colors";
             row.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
 
             row.innerHTML = `<div class="sticky-col flex items-center px-8 border-r border-slate-700 z-[100]">
-                <div><div class="font-black text-blue-500 text-sm">#${t.id}</div><div class="font-bold text-white text-[11px] uppercase truncate w-44">${t.titolo || 'TASK SENEZA TITOLO'}</div></div>
+                <div><div class="font-black text-blue-500 text-sm">#${t.id}</div><div class="font-bold text-white text-[11px] uppercase truncate w-44">${t.titolo || 'TASK'}</div></div>
                 </div><div class="flex-grow relative track-container" id="track-${t.id}"></div>`;
             content.appendChild(row);
 
-            // 1. Logica Linea Base (Binario) - Sempre presente se c'è data_inserimento
+            const track = document.getElementById(`track-${t.id}`);
+
+            // 1. Linea Base
             const dStartTicket = t.data_inserimento ? new Date(t.data_inserimento) : null;
             if (dStartTicket) {
                 const dEndTicket = t.datachiuso ? new Date(t.datachiuso) : now;
                 const baseLine = document.createElement('div');
                 baseLine.className = "baseline-ticket";
                 baseLine.style.left = `${((dStartTicket - minDate)/86400000)*DAY_PX}px`;
-                baseLine.style.width = `${((dEndTicket - dStartTicket)/86400000)*DAY_PX}px`;
-                document.getElementById(`track-${t.id}`).appendChild(baseLine);
+                baseLine.style.width = `${Math.max(10, ((dEndTicket - dStartTicket)/86400000)*DAY_PX)}px`;
+                track.appendChild(baseLine);
             }
 
             const mapping = [
@@ -162,6 +178,7 @@
                 {start:'datachiuso', end:'datachiusos', label:'Chiuso', class:'st-chiuso', key:'chiuso'}
             ];
 
+            // Identifica stato attivo
             const activeStates = mapping.filter(m => t[m.start]).map(m => ({...m, d: new Date(t[m.start])}));
             activeStates.sort((a,b) => b.d - a.d);
             const currentStateKey = activeStates.length > 0 ? activeStates[0].start : null;
@@ -170,6 +187,8 @@
             mapping.forEach((m, idx) => {
                 if(t[m.start] && t[m.end]) {
                     const dS = new Date(t[m.start]), dE = new Date(t[m.end]);
+                    if (isNaN(dS) || isNaN(dE)) return;
+
                     const bar = document.createElement('div');
                     bar.className = `seg-bar ${m.class} pos-${idx % 3}`;
                     bar.style.left = `${((dS - minDate)/86400000)*DAY_PX}px`;
@@ -182,9 +201,9 @@
                         dBar.className = `seg-bar delay-fill pos-${idx % 3}`;
                         dBar.style.left = `${((dE - minDate)/86400000)*DAY_PX}px`;
                         dBar.style.width = `${((now - dE)/86400000)*DAY_PX}px`;
-                        document.getElementById(`track-${t.id}`).appendChild(dBar);
+                        track.appendChild(dBar);
                     }
-                    document.getElementById(`track-${t.id}`).appendChild(bar);
+                    track.appendChild(bar);
                 }
             });
         });
@@ -195,4 +214,33 @@
         const tLine = document.createElement('div');
         tLine.className = "today-line";
         tLine.style.left = `${COL_WIDTH + ((now - minDate)/86400000)*DAY_PX}px`;
-        content.appendChild(
+        content.appendChild(tLine);
+    }
+
+    function updateChart(counts) {
+        const ctx = document.getElementById('stateChart').getContext('2d');
+        const dataValues = [counts.nuovo, counts.lavorazione, counts.risolto, counts.verificato, counts.accettato, counts.chiuso];
+        const hasData = dataValues.some(v => v > 0);
+
+        if (myChart) myChart.destroy();
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Nuovo', 'Lavorazione', 'Risolto', 'Verificato', 'Accettato', 'Chiuso'],
+                datasets: [{
+                    data: hasData ? dataValues : [1],
+                    backgroundColor: hasData ? ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#64748b'] : ['#334155'],
+                    borderWidth: 0
+                }]
+            },
+            options: { 
+                plugins: { legend: { display: false } }, 
+                cutout: '80%',
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+</script>
+</body>
+</html>
