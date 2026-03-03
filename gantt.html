@@ -3,222 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gantt Ticket - Fix Colonne Fisse</title>
+    <title>Enterprise Gantt System | Ultra Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --bg-color: #f8fafd;
-            --border-color: #e2e8f0;
-            --accent-blue: #3b82f6;
-            --row-height: 40px;
-            --col-width: 40px;
-        }
-
-        body { font-family: 'Century Gothic', sans-serif; background: var(--bg-color); margin: 0; padding: 20px; }
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
         
-        .gantt-wrapper {
-            position: relative;
-            max-height: 80vh;
-            overflow: auto;
-            border: 1px solid var(--border-color);
-            background: white;
-            border-radius: 8px;
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; margin: 0; }
+        .gantt-viewport { overflow-x: auto; background: #1e293b; border-radius: 24px; border: 1px solid #334155; height: 650px; scroll-behavior: smooth; }
+        .row-height { min-height: 125px; border-bottom: 1px solid #334155; position: relative; display: flex; align-items: center; }
+        
+        /* Contenitore tracce con overflow hidden per evitare lo sbordamento sulla colonna sticky */
+        .track-container { position: relative; flex-grow: 1; height: 95px; overflow: hidden; }
+        
+        /* Linea di fondo (Binario del Ticket) - BIANCA */
+        .baseline-ticket {
+            position: absolute;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            top: 40px; 
+            z-index: 5;
+            pointer-events: none;
+            border: 1px solid white;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
         }
 
-        table { border-collapse: separate; border-spacing: 0; width: 100%; }
+        /* Barre di Stato */
+        .seg-bar { 
+            position: absolute; height: 26px; border-radius: 6px; z-index: 20; cursor: help;
+            border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center;
+            padding: 0 10px; font-size: 9px; font-weight: 800; text-transform: uppercase;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            white-space: nowrap;
+        }
+        .seg-bar:hover { transform: scale(1.05); z-index: 60; outline: 2px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
 
-        /* HEADER FISSO IN ALTO */
-        thead th { 
-            position: sticky; 
-            top: 0; 
-            z-index: 100; 
-            background: #f1f5f9; 
-            border-bottom: 2px solid var(--border-color);
-            height: 50px;
+        .pos-0 { top: 4px; } .pos-1 { top: 31px; } .pos-2 { top: 58px; }
+
+        .delay-fill {
+            background: repeating-linear-gradient(45deg, #ef4444, #ef4444 12px, #991b1b 12px, #991b1b 24px);
+            border: 1px solid #f87171; animation: pulse-red 2s infinite; z-index: 15;
         }
 
-        /* COLONNE FISSE A SINISTRA */
-        .col-fixed-1 { 
+        @keyframes pulse-red { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
+
+        .st-nuovo { background: #3b82f6; } .st-lavorazione { background: #f59e0b; }
+        .st-risolto { background: #10b981; } .st-verificato { background: #8b5cf6; }
+        .st-accettato { background: #ec4899; } .st-chiuso { background: #64748b; }
+
+        .timeline-cell { min-width: 50px; text-align: center; font-size: 10px; color: #64748b; border-right: 1px solid #334155; padding: 14px 0; font-family: 'JetBrains Mono', monospace; }
+        
+        /* Colonna Sticky con z-index elevato per stare SOPRA le barre */
+        .sticky-col { 
             position: sticky; 
             left: 0; 
-            z-index: 110; 
-            background: #f8fafc; 
-            width: 60px; 
-            min-width: 60px;
-            border-right: 1px solid var(--border-color);
+            z-index: 100; 
+            background: #1e293b; 
+            border-right: 4px solid #3b82f6; 
+            min-width: 250px; 
+            max-width: 250px;
+            box-shadow: 10px 0 20px rgba(0,0,0,0.5); 
         }
-        .col-fixed-2 { 
-            position: sticky; 
-            left: 60px; 
-            z-index: 110; 
-            background: #f8fafc; 
-            width: 200px; 
-            min-width: 200px;
-            border-right: 2px solid var(--accent-blue);
-            text-align: left;
-            padding-left: 10px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Incrocio in alto a sinistra deve avere z-index massimo */
-        thead th.col-fixed-1, thead th.col-fixed-2 { z-index: 120; }
-
-        th, td { border: 0.5px solid var(--border-color); text-align: center; padding: 0; font-size: 11px; }
-
-        .day-cell { min-width: var(--col-width); width: var(--col-width); }
-        .weekend { background: #f1f5f9; }
-        .today { background: #fef08a !important; border-left: 2px solid #facc15; border-right: 2px solid #facc15; }
-
-        /* CONTENITORE BARRA */
-        .bar-wrapper { position: relative; height: var(--row-height); width: 100%; }
-
-        /* BARRA DURATA TOTALE (GRIGIA) */
-        .bar-duration {
-            position: absolute;
-            top: 14px;
-            height: 12px;
-            background: #cbd5e1;
-            border-radius: 6px;
-            z-index: 1;
-            pointer-events: none;
-            opacity: 0.5;
-        }
-
-        /* BARRA STATO (BLU) */
-        .bar-status {
-            position: absolute;
-            top: 8px;
-            height: 24px;
-            background: var(--accent-blue);
-            color: white;
-            border-radius: 4px;
-            z-index: 2;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            white-space: nowrap;
-            padding: 0 5px;
-        }
-
-        .bar-status:hover { filter: brightness(1.1); }
-
-        h1 { font-weight: normal; color: #334155; }
+        
+        .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 150; pointer-events: none; }
+        .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 24px; min-height: 200px; }
     </style>
 </head>
-<body>
+<body class="p-8" onload="loadGantt()">
 
-    <h1>Monitoraggio Ticket (Gantt)</h1>
-
-    <div class="gantt-wrapper" id="gantt-scroll">
-        <table>
-            <thead id="gantt-head"></thead>
-            <tbody id="gantt-body"></tbody>
-        </table>
+<div class="max-w-[1900px] mx-auto">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+        <div class="stat-card flex flex-col justify-center items-center border-l-8 border-red-600 shadow-xl">
+            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">SLA Superati</h3>
+            <span id="delay-count" class="text-6xl font-black text-white mt-2">0</span>
+        </div>
+        <div class="stat-card flex flex-col items-center justify-between">
+            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">Avanzamento Globale</h3>
+            <div class="relative w-full h-36 flex justify-center items-center">
+                <canvas id="stateChart"></canvas>
+            </div>
+        </div>
+        <div class="stat-card flex flex-col justify-center border-l-8 border-blue-600 shadow-xl px-10">
+            <h1 class="text-2xl font-black italic text-white uppercase tracking-tighter">PROJECT <span class="text-blue-500">CONTROL HUB</span></h1>
+            <button onclick="loadGantt()" class="mt-6 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black transition-all text-xs uppercase shadow-lg flex items-center justify-center">
+                <i class="fas fa-sync-alt mr-3 text-sm"></i>Aggiorna Dati
+            </button>
+        </div>
     </div>
+
+    <div class="gantt-viewport shadow-2xl" id="viewport">
+        <div id="timeline-header" class="flex bg-slate-800/95 backdrop-blur-md sticky top-0 z-[110]"></div>
+        <div id="gantt-content" class="relative"></div>
+    </div>
+</div>
 
 <script>
     const SB_URL = 'https://tdpmdloicnfqyixlxweh.supabase.co'; 
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg';
-    const _supabase = supabase.createClient(SB_URL, SB_KEY);
+    const client = supabase.createClient(SB_URL, SB_KEY);
+    
+    const DAY_PX = 50; 
+    const COL_WIDTH = 250;
+    let myChart = null;
 
-    const rangeGiorniInizio = 10; 
-    const rangeGiorniFine = 50; 
-    const startDate = new Date(); startDate.setDate(startDate.getDate() - rangeGiorniInizio);
-    const endDate = new Date(); endDate.setDate(endDate.getDate() + rangeGiorniFine);
-
-    function generaGiorni() {
-        const giorni = [];
-        let current = new Date(startDate);
-        while (current <= endDate) {
-            giorni.push(new Date(current));
-            current.setDate(current.getDate() + 1);
-        }
-        return giorni;
-    }
-
-    const listaGiorni = generaGiorni();
-
-    async function caricaGantt() {
-        const todayStr = new Date().toLocaleDateString('sv-SE');
-
-        // Render Head
-        let htmlHead = `<tr><th class="col-fixed-1">ID</th><th class="col-fixed-2">Titolo Ticket</th>`;
-        listaGiorni.forEach(g => {
-            const isToday = g.toLocaleDateString('sv-SE') === todayStr ? 'today' : '';
-            const isWE = (g.getDay() === 0 || g.getDay() === 6) ? 'weekend' : '';
-            htmlHead += `<th class="day-cell ${isToday} ${isWE}">${g.getDate()}<br><small>${g.toLocaleDateString('it-IT',{weekday:'short'})}</small></th>`;
-        });
-        htmlHead += `</tr>`;
-        document.getElementById('gantt-head').innerHTML = htmlHead;
-
-        // Carica dati da Supabase
-        const { data: tickets, error } = await _supabase.from('tickets').select('*');
-        if (error) { console.error(error); return; }
-
-        let htmlBody = '';
-        tickets.forEach(t => {
-            if (!t.inizioprevisto) return; // Salta se non ha date
-
-            htmlBody += `<tr style="height: var(--row-height)">
-                <td class="col-fixed-1">${t.id}</td>
-                <td class="col-fixed-2" title="${t.titolo}">${t.titolo}</td>`;
-
-            // Cella unica per le barre con posizione assoluta calcolata
-            htmlBody += `<td colspan="${listaGiorni.length}" style="padding:0; border:0; position:relative;">
-                <div class="bar-wrapper">`;
-
-            const getPos = (dataIso) => {
-                if(!dataIso) return null;
-                const d = new Date(dataIso);
-                const diffTime = d - startDate;
-                const diffDays = diffTime / (1000 * 60 * 60 * 24);
-                return diffDays * (40.5); // Larghezza cella + bordo
-            };
-
-            const xInizio = getPos(t.inizioprevisto);
-            const xFine = getPos(t.fineprevista || t.inizioprevisto);
-            const xRilascio = getPos(t.datarilascio);
-
-            // 1. Barra Grigia (Durata Totale)
-            if (xInizio !== null) {
-                const fineRiferimento = xRilascio || xFine;
-                const widthDurata = Math.max(fineRiferimento - xInizio + 40, 40);
-                htmlBody += `<div class="bar-duration" style="left: ${xInizio}px; width: ${widthDurata}px;"></div>`;
-                
-                // 2. Barra Blu (Stato)
-                const widthStato = Math.min(widthDurata, 150); // Lunghezza indicativa
-                htmlBody += `<div class="bar-status" 
-                                  style="left: ${xInizio}px; width: ${widthStato}px;" 
-                                  onclick="location.href='form.html?id=${t.id}'">
-                                  ${t.stato || 'APERTO'}
-                             </div>`;
-            }
-
-            htmlBody += `</div></td>`;
+    async function loadGantt() {
+        try {
+            const { data: tickets, error } = await client.from('tickets').select('*');
+            if (error) throw error;
             
-            // Aggiungiamo celle invisibili per mantenere la struttura della tabella (opzionale ma pulito)
-            // In realtà il colspan fa già il lavoro sporco.
-            htmlBody += `</tr>`;
-        });
-
-        document.getElementById('gantt-body').innerHTML = htmlBody;
-
-        // Scroll automatico ad oggi
-        setTimeout(() => {
-            const todayCol = document.querySelector('.today');
-            if (todayCol) {
-                todayCol.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            if (tickets && tickets.length > 0) {
+                tickets.sort((a, b) => b.id - a.id);
             }
-        }, 300);
+
+            render(tickets);
+            scrollToToday();
+        } catch (err) {
+            console.error("Errore:", err);
+        }
     }
 
-    caricaGantt();
+    function scrollToToday() {
+        const viewport = document.getElementById('viewport');
+        const now = new Date();
+        // Calcoliamo minDate (stessa logica del render)
+        let minDate = new Date();
+        minDate.setDate(minDate.getDate() - 15);
+        minDate.setHours(0,0,0,0);
+
+        const daysFromMin = (now - minDate) / 86400000;
+        const scrollPos = (daysFromMin * DAY_PX); // Centriamo la linea rossa togliendo metà larghezza
+        viewport.scrollLeft = scrollPos;
+    }
+
+    function render(tickets) {
+        const header = document.getElementById('timeline-header');
+        const content = document.getElementById('gantt-content');
+        const now = new Date();
+        let delayCounter = 0;
+        let stateCounts = { nuovo: 0, lavorazione: 0, risolto: 0, verificato: 0, accettato: 0, chiuso: 0 };
+        
+        let minDate = new Date();
+        minDate.setDate(minDate.getDate() - 15);
+        minDate.setHours(0,0,0,0);
+
+        const totalDays = 120; // Aumentato per coprire più futuro
+        
+        // Header Render
+        let hHtml = `<div class="sticky-col h-full border-r border-slate-700"></div>`;
+        for (let i = 0; i < totalDays; i++) {
+            let d = new Date(minDate); d.setDate(d.getDate() + i);
+            hHtml += `<div class="timeline-cell">${d.getDate()}/${d.getMonth()+1}</div>`;
+        }
+        header.innerHTML = hHtml;
+        header.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
+
+        content.innerHTML = '';
+        tickets.forEach(t => {
+            const row = document.createElement('div');
+            row.className = "flex row-height relative hover:bg-slate-800/40 transition-colors";
+            row.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
+
+            row.innerHTML = `
+                <div class="sticky-col flex items-center px-8 border-r border-slate-700">
+                    <div>
+                        <div class="font-black text-blue-500 text-sm">#${t.id}</div>
+                        <div class="font-bold text-white text-[11px] uppercase truncate w-44">${t.titolo || 'N/A'}</div>
+                    </div>
+                </div>
+                <div class="track-container" id="track-${t.id}"></div>
+            `;
+            content.appendChild(row);
+
+            const track = document.getElementById(`track-${t.id}`);
+            const dStart = t.data_inserimento ? new Date(t.data_inserimento) : new Date();
+            const dEnd = t.datachiuso ? new Date(t.datachiuso) : now;
+            
+            // Baseline Bianca
+            const baseLine = document.createElement('div');
+            baseLine.className = "baseline-ticket";
+            baseLine.style.left = `${((dStart - minDate)/86400000)*DAY_PX}px`;
+            baseLine.style.width = `${Math.max(30, ((dEnd - dStart)/86400000)*DAY_PX)}px`;
+            track.appendChild(baseLine);
+
+            const mapping = [
+                {start:'datanuovo', end:'datanuovos', label:'Nuovo', class:'st-nuovo', key:'nuovo'},
+                {start:'datainlavorazione', end:'datainlavoraziones', label:'Lavorazione', class:'st-lavorazione', key:'lavorazione'},
+                {start:'datarisolto', end:'datarisoltos', label:'Risolto', class:'st-risolto', key:'risolto'},
+                {start:'dataverificato', end:'dataverificatos', label:'Verificato', class:'st-verificato', key:'verificato'},
+                {start:'dataaccettato', end:'dataaccettatos', label:'Accettato', class:'st-accettato', key:'accettato'},
+                {start:'datachiuso', end:'datachiusos', label:'Chiuso', class:'st-chiuso', key:'chiuso'}
+            ];
+
+            const activeStates = mapping.filter(m => t[m.start]).map(m => ({...m, d: new Date(t[m.start])}));
+            activeStates.sort((a,b) => b.d - a.d);
+            if(activeStates.length > 0) stateCounts[activeStates[0].key]++;
+
+            mapping.forEach((m, idx) => {
+                if(t[m.start] && t[m.end]) {
+                    const dS = new Date(t[m.start]), dE = new Date(t[m.end]);
+                    const bar = document.createElement('div');
+                    bar.className = `seg-bar ${m.class} pos-${idx % 3}`;
+                    bar.style.left = `${((dS - minDate)/86400000)*DAY_PX}px`;
+                    bar.style.width = `${((dE - dS)/86400000)*DAY_PX}px`;
+                    bar.innerHTML = `<span>${m.label}</span>`;
+                    
+                    if(m.start === (activeStates[0]?.start) && now > dE && !t.datachiuso) {
+                        delayCounter++;
+                        const dBar = document.createElement('div');
+                        dBar.className = `seg-bar delay-fill pos-${idx % 3}`;
+                        dBar.style.left = `${((dE - minDate)/86400000)*DAY_PX}px`;
+                        dBar.style.width = `${((now - dE)/86400000)*DAY_PX}px`;
+                        track.appendChild(dBar);
+                    }
+                    track.appendChild(bar);
+                }
+            });
+        });
+
+        document.getElementById('delay-count').innerText = delayCounter;
+        updateChart(stateCounts);
+        
+        // Linea rossa Today
+        const tLine = document.createElement('div');
+        tLine.className = "today-line";
+        tLine.style.left = `${COL_WIDTH + ((now - minDate)/86400000)*DAY_PX}px`;
+        content.appendChild(tLine);
+    }
+
+    function updateChart(counts) {
+        const ctx = document.getElementById('stateChart').getContext('2d');
+        if (myChart) myChart.destroy();
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Nuovo', 'Lavorazione', 'Risolto', 'Verificato', 'Accettato', 'Chiuso'],
+                datasets: [{
+                    data: [counts.nuovo, counts.lavorazione, counts.risolto, counts.verificato, counts.accettato, counts.chiuso],
+                    backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#64748b'],
+                    borderWidth: 0
+                }]
+            },
+            options: { plugins: { legend: { display: false } }, cutout: '80%', responsive: true, maintainAspectRatio: false }
+        });
+    }
 </script>
 </body>
 </html>
