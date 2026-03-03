@@ -48,6 +48,13 @@
 
         @keyframes pulse-red { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
 
+        /* Animazione per evidenziare la colonna dei ticket in ritardo */
+        @keyframes alert-row {
+            0%, 100% { background: #1e293b; }
+            50% { background: #450a0a; }
+        }
+        .ticket-delayed { animation: alert-row 3s infinite ease-in-out; border-right: 4px solid #ef4444 !important; }
+
         .st-nuovo { background: #3b82f6; } .st-lavorazione { background: #f59e0b; }
         .st-risolto { background: #10b981; } .st-verificato { background: #8b5cf6; }
         .st-accettato { background: #ec4899; } .st-chiuso { background: #64748b; }
@@ -115,7 +122,6 @@
             if (tickets && tickets.length > 0) {
                 tickets.sort((a, b) => b.id - a.id);
 
-                // Trova la data più vecchia tra tutti i ticket per impostare l'inizio del Gantt
                 let earliest = new Date();
                 tickets.forEach(t => {
                     if (t.data_inserimento) {
@@ -123,7 +129,6 @@
                         if (d < earliest) earliest = d;
                     }
                 });
-                // Sottrai 5 giorni di margine dalla data più vecchia
                 earliest.setDate(earliest.getDate() - 5);
                 earliest.setHours(0,0,0,0);
                 globalMinDate = earliest;
@@ -148,7 +153,7 @@
         const header = document.getElementById('timeline-header');
         const content = document.getElementById('gantt-content');
         const now = new Date();
-        let delayCounter = 0;
+        let totalDelayCounter = 0;
         let stateCounts = { nuovo: 0, lavorazione: 0, risolto: 0, verificato: 0, accettato: 0, chiuso: 0 };
         
         const totalDays = 150; 
@@ -163,22 +168,29 @@
 
         content.innerHTML = '';
         tickets.forEach(t => {
+            let isTicketDelayed = false;
             const row = document.createElement('div');
             row.className = "flex row-height relative hover:bg-slate-800/40 transition-colors";
             row.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
 
+            // Creiamo prima il contenitore delle tracce per calcolare i ritardi
+            const trackId = `track-${t.id}`;
+            const stickyId = `sticky-${t.id}`;
+
             row.innerHTML = `
-                <div class="sticky-col flex items-center px-8 border-r border-slate-700">
+                <div id="${stickyId}" class="sticky-col flex items-center px-8 border-r border-slate-700">
                     <div>
                         <div class="font-black text-blue-500 text-sm">#${t.id}</div>
                         <div class="font-bold text-white text-[11px] uppercase truncate w-44">${t.titolo || 'N/A'}</div>
+                        <div id="status-tag-${t.id}" class="text-[9px] font-bold mt-1 opacity-60"></div>
                     </div>
                 </div>
-                <div class="track-container" id="track-${t.id}"></div>
+                <div class="track-container" id="${trackId}"></div>
             `;
             content.appendChild(row);
 
-            const track = document.getElementById(`track-${t.id}`);
+            const track = document.getElementById(trackId);
+            const stickyCol = document.getElementById(stickyId);
             const dStart = t.data_inserimento ? new Date(t.data_inserimento) : new Date();
             const dEnd = t.datachiuso ? new Date(t.datachiuso) : now;
             
@@ -199,7 +211,11 @@
 
             const activeStates = mapping.filter(m => t[m.start]).map(m => ({...m, d: new Date(t[m.start])}));
             activeStates.sort((a,b) => b.d - a.d);
-            if(activeStates.length > 0) stateCounts[activeStates[0].key]++;
+            
+            if(activeStates.length > 0) {
+                stateCounts[activeStates[0].key]++;
+                document.getElementById(`status-tag-${t.id}`).innerText = activeStates[0].label;
+            }
 
             mapping.forEach((m, idx) => {
                 if(t[m.start] && t[m.end]) {
@@ -210,8 +226,9 @@
                     bar.style.width = `${((dE - dS)/86400000)*DAY_PX}px`;
                     bar.innerHTML = `<span>${m.label}</span>`;
                     
+                    // Logica Ritardo: se l'ultimo stato attivo ha superato la data di fine prevista e il ticket non è chiuso
                     if(m.start === (activeStates[0]?.start) && now > dE && !t.datachiuso) {
-                        delayCounter++;
+                        isTicketDelayed = true;
                         const dBar = document.createElement('div');
                         dBar.className = `seg-bar delay-fill pos-${idx % 3}`;
                         dBar.style.left = `${((dE - globalMinDate)/86400000)*DAY_PX}px`;
@@ -221,9 +238,14 @@
                     track.appendChild(bar);
                 }
             });
+
+            if (isTicketDelayed) {
+                totalDelayCounter++;
+                stickyCol.classList.add('ticket-delayed');
+            }
         });
 
-        document.getElementById('delay-count').innerText = delayCounter;
+        document.getElementById('delay-count').innerText = totalDelayCounter;
         updateChart(stateCounts);
         
         const tLine = document.createElement('div');
