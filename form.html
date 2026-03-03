@@ -60,10 +60,11 @@
         #logtecnico { font-family: 'Courier New', monospace; font-size: 13px; background-color: #fcfcfc; color: #555; height: 150px; }
 
         .footer-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px; }
-        .btn { padding: 12px 30px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; text-transform: uppercase; transition: 0.3s; }
+        .btn { padding: 12px 25px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; text-transform: uppercase; transition: 0.3s; font-size: 12px; }
         .btn-save { background: var(--accent-blue); color: white; }
         .btn-save:hover { background: #2563eb; }
         .btn-cancel { background: #cbd5e1; color: #475569; }
+        .btn-menu { background: #64748b; color: white; }
         
         option.opt-annullato { color: var(--danger); font-weight: bold; }
         .annullato-warning { background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; text-align: center; display: none; }
@@ -176,7 +177,8 @@
         </div>
 
         <div class="footer-actions">
-            <button type="button" class="btn btn-cancel" onclick="location.href='index.html'">Torna alla Lista</button>
+            <button type="button" class="btn btn-menu" onclick="location.href='menu.html'">Menu</button>
+            <button type="button" class="btn btn-cancel" onclick="location.href='ticket_table.html'">Torna alla Lista</button>
             <button type="submit" id="btn-salva" class="btn btn-save">Salva Modifiche</button>
         </div>
     </form>
@@ -232,7 +234,6 @@
             } else {
                 document.getElementById('titolo-header').innerText = "Nuovo Ticket";
                 document.getElementById('tkn-id').innerText = "NEW";
-                // Pre-popolamento data inserimento automatica per i nuovi
                 document.getElementById('data_inserimento').value = new Date().toLocaleDateString('sv-SE');
             }
         } catch (err) { console.error("Errore critico:", err); }
@@ -397,7 +398,7 @@
         });
 
         const res = id ? await _supabase.from('tickets').update(payload).eq('id', id) : await _supabase.from('tickets').insert([payload]);
-        if (!res.error) location.href = 'index.html';
+        if (!res.error) location.href = 'ticket_table.html';
         else alert("Errore: " + res.error.message);
     });
 
