@@ -18,15 +18,9 @@
         .track-container { position: relative; flex-grow: 1; height: 95px; }
         
         .baseline-ticket {
-            position: absolute;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 20px;
-            top: 40px; 
-            z-index: 5;
-            pointer-events: none;
-            border: 1px solid white;
-            box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+            position: absolute; height: 8px; background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px; top: 40px; z-index: 5; pointer-events: none;
+            border: 1px solid white; box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
         }
 
         .seg-bar { 
@@ -34,33 +28,15 @@
             border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center;
             padding: 0 10px; font-size: 9px; font-weight: 800; text-transform: uppercase;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            white-space: nowrap;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); white-space: nowrap;
         }
 
         .seg-bar::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            bottom: 130%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #000;
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 11px;
-            font-weight: 400;
-            text-transform: none;
-            white-space: nowrap;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.2s ease;
-            z-index: 2000;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
-            pointer-events: none;
-            border: 1px solid #475569;
+            content: attr(data-tooltip); position: absolute; bottom: 130%; left: 50%;
+            transform: translateX(-50%); background: #000; color: #fff; padding: 8px 12px;
+            border-radius: 8px; font-size: 11px; z-index: 2000; box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+            pointer-events: none; border: 1px solid #475569; opacity: 0; visibility: hidden; transition: 0.2s;
         }
-        
         .seg-bar:hover::after { opacity: 1; visibility: visible; }
         .seg-bar:hover { transform: translateY(-2px); z-index: 500; outline: 2px solid white; }
 
@@ -72,32 +48,21 @@
         }
 
         @keyframes pulse-red { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
-
-        @keyframes alert-row {
-            0%, 100% { background: #1e293b; }
-            50% { background: #450a0a; }
-        }
+        @keyframes alert-row { 0%, 100% { background: #1e293b; } 50% { background: #450a0a; } }
         .ticket-delayed { animation: alert-row 3s infinite ease-in-out; border-right: 4px solid #ef4444 !important; }
 
-        /* Color Palette Stati */
         .st-nuovo { background: #3b82f6; } 
         .st-lavorazione { background: #f59e0b; }
         .st-risolto { background: #10b981; } 
         .st-verificato { background: #8b5cf6; }
         .st-accettato { background: #ec4899; } 
         .st-chiuso { background: #64748b; }
-        .st-altro { background: #475569; }
 
         .timeline-cell { min-width: 50px; text-align: center; font-size: 10px; color: #64748b; border-right: 1px solid #334155; padding: 14px 0; font-family: 'JetBrains Mono', monospace; }
         
         .sticky-col { 
-            position: sticky; 
-            left: 0; 
-            z-index: 100; 
-            background: #1e293b; 
-            border-right: 4px solid #3b82f6; 
-            min-width: 250px; 
-            max-width: 250px;
+            position: sticky; left: 0; z-index: 100; background: #1e293b; 
+            border-right: 4px solid #3b82f6; min-width: 250px; max-width: 250px;
             box-shadow: 10px 0 20px rgba(0,0,0,0.5); 
         }
         
@@ -150,9 +115,7 @@
     let myChart = null;
     let globalMinDate = new Date();
 
-    function formatDate(date) {
-        return date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    }
+    function formatDate(date) { return date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
 
     async function loadGantt() {
         try {
@@ -191,19 +154,10 @@
         const now = new Date();
         let totalDelayCounter = 0;
         
-        // Inizializzazione conteggi basata sugli stati reali
-        let stateCounts = { 
-            'Nuovo': 0, 
-            'In Lavorazione': 0, 
-            'Risolto': 0, 
-            'Verificato': 0, 
-            'Accettato': 0, 
-            'Chiuso': 0,
-            'Altro': 0 
-        };
+        // Conteggi iniziali
+        let counts = { 'Nuovo': 0, 'In Lavorazione': 0, 'Risolto': 0, 'Verificato': 0, 'Accettato': 0, 'Chiuso': 0, 'Altro': 0 };
 
         const totalDays = 150; 
-        
         let hHtml = `<div class="sticky-col h-full border-r border-slate-700"></div>`;
         for (let i = 0; i < totalDays; i++) {
             let d = new Date(globalMinDate); d.setDate(d.getDate() + i);
@@ -215,36 +169,36 @@
         content.innerHTML = '';
         tickets.forEach(t => {
             let isTicketDelayed = false;
+            const sRaw = (t.stato || "NUOVO").toUpperCase();
             
-            // Incremento contatore per grafico basato sullo stato ufficiale
-            const sUfficiale = t.stato ? t.stato.trim() : 'Nuovo';
-            if (stateCounts.hasOwnProperty(sUfficiale)) {
-                stateCounts[sUfficiale]++;
-            } else {
-                stateCounts['Altro']++;
-            }
+            // LOGICA DI MAPPING INTELLIGENTE PER IL GRAFICO
+            let sMapped = 'Altro';
+            if (sRaw.includes("NUOVO") || sRaw.includes("APERTO")) sMapped = 'Nuovo';
+            else if (sRaw.includes("LAVORAZIONE") || sRaw.includes("CORSO")) sMapped = 'In Lavorazione';
+            else if (sRaw.includes("RISOLTO")) sMapped = 'Risolto';
+            else if (sRaw.includes("VERIFICATO")) sMapped = 'Verificato';
+            else if (sRaw.includes("ACCETTATO") || sRaw.includes("APPROVATO")) sMapped = 'Accettato';
+            else if (sRaw.includes("CHIUSO")) sMapped = 'Chiuso';
+            
+            counts[sMapped]++;
 
             const row = document.createElement('div');
             row.className = "flex row-height relative hover:bg-slate-800/40 transition-colors";
             row.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
 
-            const trackId = `track-${t.id}`;
-            const stickyId = `sticky-${t.id}`;
-
             row.innerHTML = `
-                <div id="${stickyId}" class="sticky-col flex items-center px-8 border-r border-slate-700">
+                <div class="sticky-col flex items-center px-8 border-r border-slate-700">
                     <div>
                         <div class="font-black text-blue-500 text-sm">#${t.id}</div>
                         <div class="font-bold text-white text-[11px] uppercase truncate w-44" title="${t.titolo}">${t.titolo || 'N/A'}</div>
-                        <div class="text-[9px] font-bold mt-1 opacity-60 uppercase text-blue-300">${sUfficiale}</div>
+                        <div class="text-[9px] font-bold mt-1 opacity-60 uppercase text-blue-300">${t.stato || 'NUOVO'}</div>
                     </div>
                 </div>
-                <div class="track-container" id="${trackId}"></div>
+                <div class="track-container" id="track-${t.id}"></div>
             `;
             content.appendChild(row);
 
-            const track = document.getElementById(trackId);
-            const stickyCol = document.getElementById(stickyId);
+            const track = document.getElementById(`track-${t.id}`);
             const dStart = t.data_inserimento ? new Date(t.data_inserimento) : new Date();
             const dEnd = t.datachiuso ? new Date(t.datachiuso) : now;
             
@@ -254,112 +208,25 @@
             baseLine.style.width = `${Math.max(30, ((dEnd - dStart)/86400000)*DAY_PX)}px`;
             track.appendChild(baseLine);
 
-            const mapping = [
-                {start:'datanuovo', end:'datanuovos', label:'Nuovo', class:'st-nuovo'},
-                {start:'datainlavorazione', end:'datainlavoraziones', label:'Lavorazione', class:'st-lavorazione'},
-                {start:'datarisolto', end:'datarisoltos', label:'Risolto', class:'st-risolto'},
-                {start:'dataverificato', end:'dataverificatos', label:'Verificato', class:'st-verificato'},
-                {start:'dataaccettato', end:'dataaccettatos', label:'Accettato', class:'st-accettato'},
-                {start:'datachiuso', end:'datachiusos', label:'Chiuso', class:'st-chiuso'}
+            const states = [
+                {s:'datanuovo', e:'datanuovos', l:'Nuovo', c:'st-nuovo'},
+                {s:'datainlavorazione', e:'datainlavoraziones', l:'Lavorazione', c:'st-lavorazione'},
+                {s:'datarisolto', e:'datarisoltos', l:'Risolto', c:'st-risolto'},
+                {s:'dataverificato', e:'dataverificatos', l:'Verificato', c:'st-verificato'},
+                {s:'dataaccettato', e:'dataaccettatos', l:'Accettato', c:'st-accettato'},
+                {s:'datachiuso', e:'datachiusos', l:'Chiuso', c:'st-chiuso'}
             ];
 
-            // Calcolo ritardi e segmenti
-            mapping.forEach((m, idx) => {
-                if(t[m.start] && t[m.end]) {
-                    const dS = new Date(t[m.start]), dE = new Date(t[m.end]);
+            states.forEach((m, idx) => {
+                if(t[m.s] && t[m.e]) {
+                    const dS = new Date(t[m.s]), dE = new Date(t[m.e]);
                     const bar = document.createElement('div');
-                    bar.className = `seg-bar ${m.class} pos-${idx % 3}`;
+                    bar.className = `seg-bar ${m.c} pos-${idx % 3}`;
                     bar.style.left = `${((dS - globalMinDate)/86400000)*DAY_PX}px`;
                     bar.style.width = `${((dE - dS)/86400000)*DAY_PX}px`;
-                    bar.innerHTML = `<span>${m.label}</span>`;
-                    bar.setAttribute('data-tooltip', `${m.label.toUpperCase()} | DAL: ${formatDate(dS)} AL: ${formatDate(dE)}`);
+                    bar.innerHTML = `<span>${m.l}</span>`;
+                    bar.setAttribute('data-tooltip', `${m.l.toUpperCase()} | DAL: ${formatDate(dS)} AL: ${formatDate(dE)}`);
                     track.appendChild(bar);
                     
-                    // Se lo stato della barra corrisponde allo stato del ticket ed è scaduto
-                    if(sUfficiale.toLowerCase().includes(m.label.toLowerCase()) && now > dE && !t.datachiuso) {
-                        isTicketDelayed = true;
-                        const dBar = document.createElement('div');
-                        dBar.className = `seg-bar delay-fill pos-${idx % 3}`;
-                        dBar.style.left = `${((dE - globalMinDate)/86400000)*DAY_PX}px`;
-                        dBar.style.width = `${((now - dE)/86400000)*DAY_PX}px`;
-                        dBar.setAttribute('data-tooltip', `RITARDO CRITICO: Scadenza il ${formatDate(dE)}`);
-                        track.appendChild(dBar);
-                    }
-                }
-            });
-
-            if (isTicketDelayed) {
-                totalDelayCounter++;
-                stickyCol.classList.add('ticket-delayed');
-            }
-        });
-
-        document.getElementById('delay-count').innerText = totalDelayCounter;
-        updateChart(stateCounts);
-
-        const tLine = document.createElement('div');
-        tLine.className = "today-line";
-        tLine.style.left = `${COL_WIDTH + ((now - globalMinDate)/86400000)*DAY_PX}px`;
-        content.appendChild(tLine);
-    }
-
-    function updateChart(counts) {
-        const ctx = document.getElementById('stateChart').getContext('2d');
-        if (myChart) myChart.destroy();
-
-        const labels = Object.keys(counts);
-        const data = Object.values(counts);
-
-        myChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: data,
-                    backgroundColor: [
-                        '#3b82f6', // Nuovo
-                        '#f59e0b', // Lavorazione
-                        '#10b981', // Risolto
-                        '#8b5cf6', // Verificato
-                        '#ec4899', // Accettato
-                        '#64748b', // Chiuso
-                        '#475569'  // Altro
-                    ],
-                    hoverOffset: 15,
-                    borderWidth: 2,
-                    borderColor: '#1e293b'
-                }]
-            },
-            options: { 
-                plugins: { 
-                    legend: { 
-                        display: true, 
-                        position: 'right',
-                        labels: {
-                            color: '#cbd5e1',
-                            font: { size: 10, weight: 'bold' },
-                            padding: 10,
-                            boxWidth: 12
-                        }
-                    },
-                    tooltip: {
-                        enabled: true,
-                        callbacks: {
-                            label: function(context) {
-                                let total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                let percentage = ((context.raw / total) * 100).toFixed(1);
-                                return ` ${context.label}: ${context.raw} (${percentage}%)`;
-                            }
-                        }
-                    }
-                }, 
-                cutout: '70%', 
-                responsive: true, 
-                maintainAspectRatio: false,
-                animation: { animateScale: true }
-            }
-        });
-    }
-</script>
-</body>
-</html>
+                    if(sRaw.includes(m.l.toUpperCase()) && now > dE && !t.datachiuso) {
+                        is
