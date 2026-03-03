@@ -11,42 +11,43 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
         
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; margin: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; margin: 0; overflow-x: hidden; }
         
-        /* Contenitore principale per gestire lo scroll */
+        /* Contenitore Gantt principale */
         .gantt-viewport { 
             overflow: auto; 
             background: #1e293b; 
-            border-radius: 24px; 
+            border-radius: 20px; 
             border: 1px solid #334155; 
-            height: 650px; 
-            scroll-behavior: smooth; 
+            height: 70vh; 
             position: relative;
         }
 
         .row-height { 
-            height: 125px; 
+            height: 120px; 
             border-bottom: 1px solid #334155; 
             display: flex; 
             position: relative;
+            width: max-content; /* Fondamentale per far scorrere le barre */
         }
         
-        /* COLONNA FISSA: Z-INDEX 150 PER STARE SOPRA TUTTO */
+        /* COLONNA FISSA - CORREZIONE DEFINITIVA */
         .sticky-col { 
             position: sticky; 
             left: 0; 
-            z-index: 150; 
-            background: #1e293b; 
-            border-right: 4px solid #3b82f6; 
-            min-width: 250px; 
-            width: 250px;
+            z-index: 999; /* Valore altissimo per stare sopra tutto */
+            background-color: #1e293b !important; /* Colore solido no trasparenza */
+            min-width: 280px; 
+            width: 280px;
             display: flex; 
-            align-items: center; 
+            flex-direction: column;
+            justify-content: center;
             padding: 0 20px;
-            box-shadow: 10px 0 15px rgba(0,0,0,0.4);
+            border-right: 4px solid #3b82f6;
+            box-shadow: 10px 0 15px rgba(0,0,0,0.5); /* Ombra per staccare visivamente */
         }
 
-        /* AREA BARRE: Z-INDEX BASSO */
+        /* AREA BARRE */
         .track-container { 
             position: relative; 
             flex-grow: 1;
@@ -55,73 +56,103 @@
         
         .baseline-ticket {
             position: absolute;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
             z-index: 5;
             top: 50%;
             transform: translateY(-50%);
-            border: 1px solid #ffffff;
         }
 
         .seg-bar { 
-            position: absolute; height: 26px; border-radius: 6px; z-index: 20;
-            border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center;
-            padding: 0 10px; font-size: 9px; font-weight: 800; text-transform: uppercase;
+            position: absolute; height: 24px; border-radius: 4px; z-index: 20;
+            display: flex; align-items: center; padding: 0 8px; 
+            font-size: 9px; font-weight: 800; text-transform: uppercase;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
-        /* Posizioni verticali barre */
-        .pos-0 { top: 15px; } .pos-1 { top: 50px; } .pos-2 { top: 85px; }
+        /* Posizioni verticali barre per non sovrapporsi */
+        .pos-0 { top: 15px; } .pos-1 { top: 48px; } .pos-2 { top: 81px; }
 
+        /* Barra ritardo con animazione tratteggiata */
         .delay-fill {
-            background: repeating-linear-gradient(45deg, #ef4444, #ef4444 12px, #991b1b 12px, #991b1b 24px);
-            border: 1px solid #f87171; animation: pulse-red 2s infinite; z-index: 15;
+            background: repeating-linear-gradient(45deg, #ef4444, #ef4444 10px, #7f1d1d 10px, #7f1d1d 20px);
+            border: 1px solid #f87171; z-index: 15;
         }
-
-        @keyframes pulse-red { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
-        @keyframes blink-text { 0%, 100% { color: #ef4444; } 50% { color: #ffffff; } }
 
         .st-nuovo { background: #3b82f6; } .st-lavorazione { background: #f59e0b; }
         .st-risolto { background: #10b981; } .st-verificato { background: #8b5cf6; }
         .st-accettato { background: #ec4899; } .st-chiuso { background: #64748b; }
 
-        .timeline-cell { min-width: 50px; text-align: center; font-size: 10px; color: #64748b; border-right: 1px solid #334155; padding: 14px 0; font-family: 'JetBrains Mono', monospace; }
-        .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 140; pointer-events: none; }
+        .timeline-cell { 
+            min-width: 50px; text-align: center; font-size: 10px; 
+            color: #94a3b8; border-right: 1px solid #334155; 
+            padding: 12px 0; background: #1e293b;
+        }
 
-        .ticket-delay-id { animation: blink-text 1.5s infinite; font-weight: 900 !important; }
-        .row-delay-bg { background: linear-gradient(90deg, rgba(153, 27, 27, 0.2) 0%, rgba(30, 41, 59, 0) 100%); }
+        /* Header Timeline fisso in alto */
+        #timeline-header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            width: max-content;
+        }
+
+        .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 50; pointer-events: none; }
+        
+        .ticket-id-badge {
+            font-family: 'JetBrains Mono';
+            background: #334155;
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: #60a5fa;
+            font-weight: bold;
+            margin-bottom: 4px;
+            display: inline-block;
+        }
+        
+        .delay-alert { color: #ef4444; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } }
     </style>
 </head>
-<body class="p-8" onload="loadGantt()">
+<body class="p-6 md:p-10">
 
-<div class="max-w-[1900px] mx-auto">
-    <div class="flex justify-between items-center mb-6">
-        <a href="menu.html" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl border border-slate-600 transition flex items-center gap-2 font-bold text-sm">
-            <i class="fas fa-th-large"></i> Menu Principale
-        </a>
-        <h1 class="text-2xl font-black italic text-white uppercase tracking-tighter">PROJECT <span class="text-blue-500">CONTROL</span></h1>
+<div class="max-w-[1800px] mx-auto">
+    <div class="flex flex-wrap justify-between items-center mb-8 gap-4">
+        <div class="flex gap-4">
+            <a href="menu.html" class="bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-xl border border-slate-600 transition flex items-center gap-2 font-bold">
+                <i class="fas fa-th-large"></i> Menu
+            </a>
+            <a href="ticket_table.html" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl transition flex items-center gap-2 font-bold shadow-lg shadow-blue-900/20">
+                <i class="fas fa-list"></i> Tabella Ticket
+            </a>
+        </div>
+        <h1 class="text-3xl font-black italic tracking-tighter uppercase text-slate-200">
+            Gantt <span class="text-blue-500">Timeline</span>
+        </h1>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-        <div class="bg-[#1e293b] border border-slate-700 rounded-[20px] p-6 flex flex-col justify-center items-center border-l-8 border-red-600 shadow-xl">
-            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">SLA Superati</h3>
-            <span id="delay-count" class="text-6xl font-black text-white mt-2">0</span>
-        </div>
-        <div class="bg-[#1e293b] border border-slate-700 rounded-[20px] p-6 flex flex-col items-center justify-between">
-            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">Stato Task</h3>
-            <div class="relative w-full h-36 flex justify-center items-center">
-                <canvas id="stateChart"></canvas>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl flex items-center gap-6">
+            <div class="bg-red-500/20 p-4 rounded-xl"><i class="fas fa-clock text-red-500 text-2xl"></i></div>
+            <div>
+                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Ticket in Ritardo</p>
+                <p id="delay-count" class="text-4xl font-black text-white">0</p>
             </div>
         </div>
-        <div class="bg-[#1e293b] border border-slate-700 rounded-[20px] p-6 flex flex-col justify-center px-10">
-            <button onclick="loadGantt()" class="bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black transition-all text-xs uppercase shadow-lg flex items-center justify-center">
-                <i class="fas fa-sync-alt mr-3"></i>Aggiorna Dati
-            </button>
+        <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl flex items-center gap-6">
+            <div class="bg-blue-500/20 p-4 rounded-xl"><i class="fas fa-tasks text-blue-500 text-2xl"></i></div>
+            <div class="flex-grow h-16"><canvas id="stateChart"></canvas></div>
         </div>
+        <button onclick="loadGantt()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-6 rounded-2xl transition group">
+            <i class="fas fa-sync-alt text-2xl text-blue-400 group-hover:rotate-180 transition-transform duration-500"></i>
+            <p class="text-white font-bold mt-2 uppercase text-xs">Aggiorna Gantt</p>
+        </button>
     </div>
 
     <div class="gantt-viewport shadow-2xl" id="viewport">
-        <div id="timeline-header" class="flex bg-slate-800 sticky top-0 z-[200]"></div>
+        <div id="timeline-header"></div>
         <div id="gantt-content"></div>
     </div>
 </div>
@@ -132,15 +163,14 @@
     const client = supabase.createClient(SB_URL, SB_KEY);
     
     const DAY_PX = 50; 
-    const COL_WIDTH = 250;
+    const STICKY_WIDTH = 280;
     let myChart = null;
 
     async function loadGantt() {
         try {
             const { data: tickets, error } = await client.from('tickets').select('*');
             if (error) throw error;
-            const sortedTickets = tickets.sort((a, b) => (parseInt(b.id) || 0) - (parseInt(a.id) || 0));
-            render(sortedTickets);
+            render(tickets.sort((a, b) => b.id - a.id));
         } catch (err) { console.error(err); }
     }
 
@@ -150,24 +180,21 @@
         const viewport = document.getElementById('viewport');
         const now = new Date();
         let delayCounter = 0;
-        let stateCounts = { nuovo:0, lavorazione:0, risolto:0, verificato:0, accettato:0, chiuso:0 };
+        let stats = { nuovo:0, lavorazione:0, risolto:0, verificato:0, accettato:0, chiuso:0 };
         
         let minDate = new Date();
-        minDate.setDate(minDate.getDate() - 15);
-        tickets.forEach(t => {
-            const d = t.data_inserimento ? new Date(t.data_inserimento) : null;
-            if (d && !isNaN(d) && d < minDate) minDate = d;
-        });
+        minDate.setDate(minDate.getDate() - 10);
         minDate.setHours(0,0,0,0);
 
-        const totalDays = 120; 
-        let hHtml = `<div class="sticky-col" style="height: 45px; background: #0f172a; border-right: 4px solid #3b82f6;"></div>`;
+        const totalDays = 90; 
+        
+        // Render Header
+        let hHtml = `<div class="sticky-col" style="height:45px; border-bottom:1px solid #334155; box-shadow:none;"></div>`;
         for (let i = 0; i < totalDays; i++) {
             let d = new Date(minDate); d.setDate(d.getDate() + i);
             hHtml += `<div class="timeline-cell">${d.getDate()}/${d.getMonth()+1}</div>`;
         }
         header.innerHTML = hHtml;
-        header.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
 
         content.innerHTML = '';
         tickets.forEach(t => {
@@ -180,101 +207,94 @@
                 {start:'datachiuso', end:'datachiusos', label:'Chiuso', class:'st-chiuso', key:'chiuso'}
             ];
 
-            const activeStates = mapping.filter(m => t[m.start] && !isNaN(new Date(t[m.start]).getTime()))
-                                         .map(m => ({...m, d: new Date(t[m.start]), dEnd: new Date(t[m.end])}));
-            activeStates.sort((a,b) => b.d - a.d);
+            const states = mapping.filter(m => t[m.start]).map(m => ({...m, d: new Date(t[m.start]), dE: new Date(t[m.end])}));
+            states.sort((a,b) => b.d - a.d);
             
             let isDelay = false;
-            if(activeStates.length > 0) {
-                stateCounts[activeStates[0].key]++;
-                if(now > activeStates[0].dEnd && !t.datachiuso) {
-                    isDelay = true;
-                    delayCounter++;
-                }
+            if(states.length > 0) {
+                stats[states[0].key]++;
+                if(now > states[0].dE && !t.datachiuso) { isDelay = true; delayCounter++; }
             }
 
             const row = document.createElement('div');
-            row.className = `row-height ${isDelay ? 'row-delay-bg' : ''}`;
-            row.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
-            
+            row.className = "row-height";
             row.innerHTML = `
-                <div class="sticky-col ${isDelay ? 'row-delay-bg' : ''}">
-                    <div class="truncate">
-                        <div class="${isDelay ? 'ticket-delay-id' : 'text-blue-500'} font-black text-sm">
-                            ${isDelay ? '⚠️ ' : ''}#${t.id}
-                        </div>
-                        <div class="text-white text-[11px] font-bold uppercase truncate">${t.titolo || 'N/A'}</div>
-                    </div>
+                <div class="sticky-col">
+                    <span class="ticket-id-badge">${isDelay ? '⚠️ ' : ''}#${t.id}</span>
+                    <div class="text-white text-[11px] font-bold uppercase truncate w-full" title="${t.titolo}">${t.titolo || 'Nessun Titolo'}</div>
+                    <div class="text-slate-400 text-[9px] mt-1">${t.stato || 'Aperto'}</div>
                 </div>
                 <div class="track-container" id="track-${t.id}"></div>
             `;
             content.appendChild(row);
 
             const track = document.getElementById(`track-${t.id}`);
-            const validDates = [t.data_inserimento, t.datanuovo, t.datainlavorazione, t.datarisolto, t.dataverificato, t.dataaccettato, t.datachiuso]
-                .filter(d => d && !isNaN(new Date(d).getTime())).map(d => new Date(d));
-
-            if (validDates.length > 0) {
-                const dStart = new Date(Math.min(...validDates));
-                const dEnd = (t.datachiuso && !isNaN(new Date(t.datachiuso))) ? new Date(t.datachiuso) : now;
-                const baseLine = document.createElement('div');
-                baseLine.className = "baseline-ticket";
-                baseLine.style.left = `${((dStart - minDate)/86400000)*DAY_PX}px`;
-                baseLine.style.width = `${Math.max(20, ((dEnd - dStart)/86400000)*DAY_PX)}px`;
-                track.appendChild(baseLine);
+            
+            // Baseline grigia per il percorso totale
+            const allDates = [t.data_inserimento, ...mapping.map(m => t[m.start])].filter(d => d).map(d => new Date(d));
+            if(allDates.length > 0) {
+                const start = new Date(Math.min(...allDates));
+                const end = t.datachiuso ? new Date(t.datachiuso) : now;
+                const base = document.createElement('div');
+                base.className = "baseline-ticket";
+                base.style.left = `${((start - minDate)/86400000)*DAY_PX}px`;
+                base.style.width = `${Math.max(20, ((end - start)/86400000)*DAY_PX)}px`;
+                track.appendChild(base);
             }
 
             mapping.forEach((m, idx) => {
                 if(t[m.start] && t[m.end]) {
-                    const dS = new Date(t[m.start]), dE = new Date(t[m.end]);
-                    if(isNaN(dS) || isNaN(dE)) return;
-
+                    const ds = new Date(t[m.start]), de = new Date(t[m.end]);
                     const bar = document.createElement('div');
                     bar.className = `seg-bar ${m.class} pos-${idx % 3}`;
-                    bar.style.left = `${((dS - minDate)/86400000)*DAY_PX}px`;
-                    bar.style.width = `${Math.max(10, ((dE - dS)/86400000)*DAY_PX)}px`;
+                    bar.style.left = `${((ds - minDate)/86400000)*DAY_PX}px`;
+                    bar.style.width = `${Math.max(15, ((de - ds)/86400000)*DAY_PX)}px`;
                     bar.innerHTML = `<span>${m.label}</span>`;
-                    
-                    if(m.start === (activeStates[0]?.start) && now > dE && !t.datachiuso) {
+                    track.appendChild(bar);
+
+                    // Barra ritardo tratteggiata
+                    if(m.start === states[0]?.start && now > de && !t.datachiuso) {
                         const dBar = document.createElement('div');
                         dBar.className = `seg-bar delay-fill pos-${idx % 3}`;
-                        dBar.style.left = `${((dE - minDate)/86400000)*DAY_PX}px`;
-                        dBar.style.width = `${((now - dE)/86400000)*DAY_PX}px`;
+                        dBar.style.left = `${((de - minDate)/86400000)*DAY_PX}px`;
+                        dBar.style.width = `${((now - de)/86400000)*DAY_PX}px`;
                         track.appendChild(dBar);
                     }
-                    track.appendChild(bar);
                 }
             });
         });
 
         document.getElementById('delay-count').innerText = delayCounter;
-        updateChart(stateCounts);
+        updateChart(stats);
         
-        const todayOffset = ((now - minDate)/86400000)*DAY_PX;
-        const tLine = document.createElement('div');
-        tLine.className = "today-line";
-        tLine.style.left = `${COL_WIDTH + todayOffset}px`;
-        content.appendChild(tLine);
+        // Linea "Oggi"
+        const offsetToday = ((now - minDate)/86400000)*DAY_PX;
+        const line = document.createElement('div');
+        line.className = "today-line";
+        line.style.left = `${STICKY_WIDTH + offsetToday}px`;
+        content.appendChild(line);
 
-        setTimeout(() => { viewport.scrollLeft = todayOffset - 200; }, 300);
+        setTimeout(() => { viewport.scrollLeft = offsetToday; }, 500);
     }
 
-    function updateChart(counts) {
+    function updateChart(s) {
         const ctx = document.getElementById('stateChart').getContext('2d');
         if (myChart) myChart.destroy();
         myChart = new Chart(ctx, {
-            type: 'doughnut',
+            type: 'bar',
             data: {
-                labels: ['Nuovo', 'Lavorazione', 'Risolto', 'Verificato', 'Accettato', 'Chiuso'],
+                labels: ['N', 'L', 'R', 'V', 'A', 'C'],
                 datasets: [{
-                    data: [counts.nuovo, counts.lavorazione, counts.risolto, counts.verificato, counts.accettato, counts.chiuso],
+                    data: [s.nuovo, s.lavorazione, s.risolto, s.verificato, s.accettato, s.chiuso],
                     backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#64748b'],
-                    borderWidth: 0
+                    borderRadius: 5
                 }]
             },
-            options: { plugins: { legend: { display: false } }, cutout: '80%', responsive: true, maintainAspectRatio: false }
+            options: { plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 9 } } } }, maintainAspectRatio: false }
         });
     }
+
+    window.onload = loadGantt;
 </script>
 </body>
 </html>
