@@ -126,6 +126,11 @@
             <textarea id="descrizione" placeholder="Dettagli della segnalazione..."></textarea>
         </div>
 
+        <div class="full-width">
+            <label>Descrizione attività tecnica</label>
+            <textarea id="descrizioneattivita" placeholder="Dettagli tecnici dell'intervento svolto..."></textarea>
+        </div>
+
         <div class="session-title"><span>Gestione Operativa</span></div>
         <div class="grid-4">
             <div><label>Incarico A</label><input type="text" id="incarico" placeholder="Nome tecnico"></div>
@@ -316,6 +321,7 @@
             document.getElementById('data_inserimento').value = data.data_inserimento || '';
             document.getElementById('titolo').value = data.titolo || '';
             document.getElementById('descrizione').value = data.descrizione || '';
+            document.getElementById('descrizioneattivita').value = data.descrizioneattivita || ''; // CARICA ATTIVITA TECNICA
             document.getElementById('stato-select').value = data.stato || '';
             document.getElementById('tipo-select').value = data.tipo || '';
             document.getElementById('priorita-select').value = data.priorita || '';
@@ -374,6 +380,7 @@
             data_inserimento: document.getElementById('data_inserimento').value || null,
             titolo: document.getElementById('titolo').value,
             descrizione: document.getElementById('descrizione').value,
+            descrizioneattivita: document.getElementById('descrizioneattivita').value, // SALVA ATTIVITA TECNICA
             stato: nuovoStato,
             tipo: document.getElementById('tipo-select').value,
             priorita: document.getElementById('priorita-select').value,
