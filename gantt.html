@@ -12,10 +12,10 @@
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
         
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; margin: 0; }
-        .gantt-viewport { overflow-x: auto; background: #1e293b; border-radius: 24px; border: 1px solid #334155; height: 650px; scroll-behavior: smooth; }
+        .gantt-viewport { overflow-x: auto; background: #1e293b; border-radius: 24px; border: 1px solid #334155; height: 650px; scroll-behavior: smooth; position: relative; }
         .row-height { min-height: 125px; border-bottom: 1px solid #334155; position: relative; display: flex; align-items: center; }
         
-        .track-container { position: relative; flex-grow: 1; height: 95px; overflow: hidden; }
+        .track-container { position: relative; flex-grow: 1; height: 95px; }
         
         .baseline-ticket {
             position: absolute;
@@ -29,7 +29,6 @@
             box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
         }
 
-        /* Tooltip personalizzato tramite attributo data-tooltip */
         .seg-bar { 
             position: absolute; height: 26px; border-radius: 6px; z-index: 20; cursor: help;
             border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center;
@@ -39,39 +38,41 @@
             white-space: nowrap;
         }
 
-        /* Effetto Disclaimer al passaggio del mouse */
+        /* Tooltip / Disclaimer */
         .seg-bar::after {
             content: attr(data-tooltip);
             position: absolute;
-            bottom: 125%;
+            bottom: 130%;
             left: 50%;
             transform: translateX(-50%);
             background: #000;
             color: #fff;
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 400;
+            text-transform: none;
             white-space: nowrap;
             opacity: 0;
             visibility: hidden;
-            transition: opacity 0.2s;
+            transition: all 0.2s;
             z-index: 1000;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
             pointer-events: none;
-            border: 1px solid #334155;
+            border: 1px solid #475569;
         }
         .seg-bar:hover::after {
             opacity: 1;
             visibility: visible;
         }
 
-        .seg-bar:hover { transform: scale(1.02); z-index: 60; outline: 2px solid white; }
+        .seg-bar:hover { transform: translateY(-2px); z-index: 500; outline: 2px solid white; }
 
         .pos-0 { top: 4px; } .pos-1 { top: 31px; } .pos-2 { top: 58px; }
 
         .delay-fill {
             background: repeating-linear-gradient(45deg, #ef4444, #ef4444 12px, #991b1b 12px, #991b1b 24px);
-            border: 1px solid #f87171; animation: pulse-red 2s infinite; z-index: 15;
+            border: 1px solid #f87171; animation: pulse-red 2s infinite; z-index: 30;
         }
 
         @keyframes pulse-red { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
@@ -119,9 +120,14 @@
         </div>
         <div class="stat-card flex flex-col justify-center border-l-8 border-blue-600 shadow-xl px-10">
             <h1 class="text-2xl font-black italic text-white uppercase tracking-tighter">PROJECT <span class="text-blue-500">CONTROL HUB</span></h1>
-            <button onclick="loadGantt()" class="mt-6 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black transition-all text-xs uppercase shadow-lg flex items-center justify-center">
-                <i class="fas fa-sync-alt mr-3 text-sm"></i>Aggiorna Dati
-            </button>
+            <div class="flex gap-3 mt-6">
+                <button onclick="loadGantt()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black transition-all text-[10px] uppercase shadow-lg flex items-center justify-center">
+                    <i class="fas fa-sync-alt mr-2 text-xs"></i>Aggiorna
+                </button>
+                <button onclick="window.location.href='index.html'" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-2xl font-black transition-all text-[10px] uppercase shadow-lg flex items-center justify-center">
+                    <i class="fas fa-home mr-2 text-xs"></i>Menu
+                </button>
+            </div>
         </div>
     </div>
 
@@ -250,25 +256,26 @@
             mapping.forEach((m, idx) => {
                 if(t[m.start] && t[m.end]) {
                     const dS = new Date(t[m.start]), dE = new Date(t[m.end]);
+                    
+                    // Barra di stato principale
                     const bar = document.createElement('div');
                     bar.className = `seg-bar ${m.class} pos-${idx % 3}`;
                     bar.style.left = `${((dS - globalMinDate)/86400000)*DAY_PX}px`;
                     bar.style.width = `${((dE - dS)/86400000)*DAY_PX}px`;
                     bar.innerHTML = `<span>${m.label}</span>`;
+                    bar.setAttribute('data-tooltip', `${m.label} | Dal: ${formatDate(dS)} Al: ${formatDate(dE)}`);
+                    track.appendChild(bar);
                     
-                    // Aggiunta Disclaimer Inizio/Fine
-                    bar.setAttribute('data-tooltip', `Inizio: ${formatDate(dS)} - Fine: ${formatDate(dE)}`);
-                    
+                    // Barra di ritardo (se applicabile)
                     if(m.start === (activeStates[0]?.start) && now > dE && !t.datachiuso) {
                         isTicketDelayed = true;
                         const dBar = document.createElement('div');
                         dBar.className = `seg-bar delay-fill pos-${idx % 3}`;
                         dBar.style.left = `${((dE - globalMinDate)/86400000)*DAY_PX}px`;
                         dBar.style.width = `${((now - dE)/86400000)*DAY_PX}px`;
-                        dBar.setAttribute('data-tooltip', `RITARDO: Scadenza il ${formatDate(dE)}`);
+                        dBar.setAttribute('data-tooltip', `RITARDO: Scadenza prevista il ${formatDate(dE)}`);
                         track.appendChild(dBar);
                     }
-                    track.appendChild(bar);
                 }
             });
 
