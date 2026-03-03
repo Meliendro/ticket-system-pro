@@ -46,16 +46,13 @@
         h1 { font-weight: 800; font-size: 1.8rem; margin: 0; display: flex; align-items: center; gap: 12px; }
         h1 i { color: var(--accent); }
 
-        /* --- STILI AGGIUNTI PER UTENTE/LOGOUT --- */
         .user-panel { display: flex; align-items: center; gap: 15px; }
         .user-email { font-size: 0.9rem; color: #64748b; font-weight: 600; }
         .btn-logout { background: #fee2e2; color: var(--danger); padding: 8px 15px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.9rem; transition: 0.3s; }
         .btn-logout:hover { background: var(--danger); color: white; }
         
-        /* Stile pulsante Menu */
         .btn-menu { background: #e0f2fe; color: var(--accent); padding: 8px 15px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.9rem; transition: 0.3s; }
         .btn-menu:hover { background: var(--accent); color: white; }
-        /* -------------------------------------- */
 
         .stats-bar {
             display: grid;
@@ -126,7 +123,7 @@
             border: 1px solid #eef2f7;
         }
 
-        table { width: 100%; border-collapse: collapse; min-width: 3500px; }
+        table { width: 100%; border-collapse: collapse; min-width: 3700px; }
         th { 
             background-color: #f8fafc; 
             color: #475569; 
@@ -236,7 +233,7 @@
                     <th>Fine</th>
                     <th>Rilascio</th>
                     <th>Note</th>
-                    <th class="deadline-col">Sca. Nuovo</th>
+                    <th>Data Inserimento</th> <th class="deadline-col">Sca. Nuovo</th>
                     <th class="deadline-col">Sca. Lavorazione</th>
                     <th class="deadline-col">Sca. Risolto</th>
                     <th class="deadline-col">Sca. Verificato</th>
@@ -247,7 +244,7 @@
                 </tr>
             </thead>
             <tbody id="lista-body">
-                <tr><td colspan="24" style="text-align:center; padding: 50px;"><i class="fas fa-spinner fa-spin"></i> Caricamento...</td></tr>
+                <tr><td colspan="25" style="text-align:center; padding: 50px;"><i class="fas fa-spinner fa-spin"></i> Caricamento...</td></tr>
             </tbody>
         </table>
     </div>
@@ -262,7 +259,6 @@
     let soloScadutiAttivo = false;
     let mostraAnnullati = false;
 
-    // --- CONTROLLO ACCESSO E UTENTE ---
     async function checkUser() {
         const { data: { user } } = await _supabase.auth.getUser();
         if (!user) {
@@ -277,7 +273,6 @@
         await _supabase.auth.signOut();
         window.location.href = 'login.html';
     }
-    // ----------------------------------
 
     function formattaData(d) { return d ? new Date(d).toLocaleDateString('it-IT') : '-'; }
 
@@ -342,7 +337,6 @@
             const scad = isScaduto(t);
             const isAnnullato = (t.stato || "").toUpperCase() === "ANNULLATO";
             
-            // Logica Filtro Annullati
             if (!mostraAnnullati && isAnnullato) return false;
 
             return (fS === "" || t.stato === fS) &&
@@ -394,7 +388,7 @@
                 <td>${formattaData(t.fineprevista)}</td>
                 <td>${formattaData(t.datarilascio)}</td>
                 <td><span class="truncate">${t.descrizione_attivita || '-'}</span></td>
-                <td class="deadline-col">${formattaData(t.datanuovos)}</td>
+                <td>${formattaData(t.data_inserimento)}</td> <td class="deadline-col">${formattaData(t.datanuovos)}</td>
                 <td class="deadline-col">${formattaData(t.datainlavoraziones)}</td>
                 <td class="deadline-col">${formattaData(t.datarisoltos)}</td>
                 <td class="deadline-col">${formattaData(t.dataverificatos)}</td>
