@@ -90,7 +90,7 @@
         <div class="grid-4">
             <div>
                 <label>Data Inserimento</label>
-                <input type="date" id="data_inserimento">
+                <input type="date" id="data_inserimento" readonly>
             </div>
             <div>
                 <label>Stato</label>
@@ -232,7 +232,7 @@
             } else {
                 document.getElementById('titolo-header').innerText = "Nuovo Ticket";
                 document.getElementById('tkn-id').innerText = "NEW";
-                // Imposta data odierna per i nuovi ticket
+                // Pre-popolamento data inserimento automatica per i nuovi
                 document.getElementById('data_inserimento').value = new Date().toLocaleDateString('sv-SE');
             }
         } catch (err) { console.error("Errore critico:", err); }
