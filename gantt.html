@@ -3,272 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise Gantt System | Ultra Edition</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Gantt Ticket Pro - Fix</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; margin: 0; overflow-x: hidden; }
-        
-        .gantt-viewport { 
-            overflow: auto; 
-            background: #1e293b; 
-            border-radius: 20px; 
-            border: 1px solid #334155; 
-            height: 70vh; 
-            position: relative;
-            scroll-behavior: smooth;
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --border: #e2e8f0;
+            --sticky-offset: 0px;
         }
 
-        .row-height { 
-            height: 120px; 
-            border-bottom: 1px solid #334155; 
-            display: flex; 
-            position: relative;
-            width: max-content;
-        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
         
-        .sticky-col { 
-            position: sticky; 
-            left: 0; 
-            z-index: 999;
-            background-color: #1e293b !important;
-            min-width: 280px; 
-            width: 280px;
-            display: flex; 
-            flex-direction: column;
-            justify-content: center;
-            padding: 0 20px;
-            border-right: 4px solid #3b82f6;
-            box-shadow: 10px 0 15px rgba(0,0,0,0.5);
+        .gantt-wrapper { 
+            background: white; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            overflow: hidden;
+            border: 1px solid var(--border);
         }
 
-        .track-container { position: relative; flex-grow: 1; z-index: 10; }
+        .gantt-container { 
+            overflow-x: auto; 
+            position: relative;
+            max-height: 80vh;
+        }
+
+        table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+
+        /* HEADER E COLONNE FISSE */
+        th, td { border: 1px solid var(--border); padding: 8px; text-align: center; font-size: 12px; }
         
-        .baseline-ticket {
+        .col-id { width: 60px; position: sticky; left: 0; background: #f1f5f9; z-index: 10; }
+        .col-titolo { width: 250px; position: sticky; left: 60px; background: #f1f5f9; z-index: 10; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        thead th { position: sticky; top: 0; background: #f1f5f9; z-index: 11; }
+        thead th.col-id, thead th.col-titolo { z-index: 12; }
+
+        .day-col { width: 35px; min-width: 35px; }
+        .today { background: #fef08a !important; font-weight: bold; border: 2px solid #facc15 !important; }
+        .weekend { background: #f8fafc; color: #cbd5e1; }
+
+        /* BARRE GANTT */
+        .gantt-row { height: 45px; }
+        .bar-container { position: relative; height: 100%; width: 100%; padding: 0; }
+        
+        .bar-total {
             position: absolute;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            z-index: 5;
+            height: 12px;
             top: 50%;
             transform: translateY(-50%);
+            background: #cbd5e1;
+            border-radius: 6px;
+            z-index: 1;
+            opacity: 0.6;
         }
 
-        .seg-bar { 
-            position: absolute; height: 24px; border-radius: 4px; z-index: 20;
-            display: flex; align-items: center; padding: 0 8px; 
-            font-size: 9px; font-weight: 800; text-transform: uppercase;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .pos-0 { top: 15px; } .pos-1 { top: 48px; } .pos-2 { top: 81px; }
-
-        .delay-fill {
-            background: repeating-linear-gradient(45deg, #ef4444, #ef4444 10px, #7f1d1d 10px, #7f1d1d 20px);
-            border: 1px solid #f87171; z-index: 15;
-        }
-
-        .st-nuovo { background: #3b82f6; } .st-lavorazione { background: #f59e0b; }
-        .st-risolto { background: #10b981; } .st-verificato { background: #8b5cf6; }
-        .st-accettato { background: #ec4899; } .st-chiuso { background: #64748b; }
-
-        .timeline-cell { 
-            min-width: 50px; text-align: center; font-size: 10px; 
-            color: #94a3b8; border-right: 1px solid #334155; 
-            padding: 12px 0; background: #0f172a;
-        }
-
-        #timeline-header { position: sticky; top: 0; z-index: 1000; display: flex; width: max-content; }
-
-        .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 50; pointer-events: none; }
-        
-        .ticket-id-badge {
-            font-family: 'JetBrains Mono';
-            background: #334155;
-            padding: 2px 8px;
+        .bar-progress {
+            position: absolute;
+            height: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--primary);
             border-radius: 4px;
-            color: #60a5fa;
-            font-weight: bold;
-            margin-bottom: 4px;
-            display: inline-block;
+            z-index: 2;
+            color: white;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
         }
+
+        .status-badge { font-size: 10px; padding: 2px 6px; border-radius: 10px; background: #eee; }
+
+        h1 { font-weight: 300; color: #1e293b; margin-bottom: 20px; }
     </style>
 </head>
-<body class="p-6 md:p-10" onload="loadGantt()">
+<body>
 
-<div class="max-w-[1800px] mx-auto">
-    <div class="flex flex-wrap justify-between items-center mb-8 gap-4">
-        <div class="flex gap-4">
-            <a href="menu.html" class="bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-xl border border-slate-600 transition flex items-center gap-2 font-bold">
-                <i class="fas fa-th-large"></i> Menu
-            </a>
-            <a href="ticket_table.html" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl transition flex items-center gap-2 font-bold shadow-lg shadow-blue-900/20">
-                <i class="fas fa-list"></i> Tabella Ticket
-            </a>
-        </div>
-        <h1 class="text-3xl font-black italic tracking-tighter uppercase text-slate-200">
-            Gantt <span class="text-blue-500">Timeline</span>
-        </h1>
-    </div>
+    <h1>Piano di Lavoro - Gantt</h1>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl flex items-center gap-6">
-            <div class="bg-red-500/20 p-4 rounded-xl"><i class="fas fa-clock text-red-500 text-2xl"></i></div>
-            <div>
-                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">SLA Superati</p>
-                <p id="delay-count" class="text-4xl font-black text-white">0</p>
-            </div>
+    <div class="gantt-wrapper">
+        <div class="gantt-container" id="gantt-scroll">
+            <table id="gantt-table">
+                <thead id="gantt-head">
+                    </thead>
+                <tbody id="gantt-body">
+                    </tbody>
+            </table>
         </div>
-        <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl flex-grow h-32">
-            <canvas id="stateChart"></canvas>
-        </div>
-        <button onclick="loadGantt()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-6 rounded-2xl transition group">
-            <i class="fas fa-sync-alt text-2xl text-blue-400 group-hover:rotate-180 transition"></i>
-            <p class="text-white font-bold mt-2 uppercase text-xs">Aggiorna</p>
-        </button>
     </div>
-
-    <div class="gantt-viewport shadow-2xl" id="viewport">
-        <div id="timeline-header"></div>
-        <div id="gantt-content"></div>
-    </div>
-</div>
 
 <script>
     const SB_URL = 'https://tdpmdloicnfqyixlxweh.supabase.co'; 
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcG1kbG9pY25mcXlpeGx4d2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMDgyODEsImV4cCI6MjA4NzU4NDI4MX0.EyPcvKFabIL_BX67S0MKLm4ccvHFr4Fiq3glt_iSJWg';
-    const client = supabase.createClient(SB_URL, SB_KEY);
-    
-    const DAY_PX = 50; 
-    const STICKY_WIDTH = 280;
-    let myChart = null;
+    const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
-    async function loadGantt() {
-        try {
-            const { data: tickets, error } = await client.from('tickets').select('*');
-            if (error) throw error;
-            render(tickets.sort((a, b) => b.id - a.id));
-        } catch (err) { console.error(err); }
-    }
+    // Configurazione Date: 15 giorni prima e 45 dopo
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 15);
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + 45);
 
-    function render(tickets) {
-        const header = document.getElementById('timeline-header');
-        const content = document.getElementById('gantt-content');
-        const viewport = document.getElementById('viewport');
-        const now = new Date();
-        let delayCounter = 0;
-        let stats = { nuovo:0, lavorazione:0, risolto:0, verificato:0, accettato:0, chiuso:0 };
-        
-        // CALCOLO DATA INIZIO DINAMICA
-        let allPossibleDates = [];
-        tickets.forEach(t => {
-            ['data_inserimento','datanuovo','datainlavorazione','datarisolto'].forEach(k => {
-                if(t[k]) allPossibleDates.push(new Date(t[k]));
-            });
-        });
-        
-        let minDate = allPossibleDates.length > 0 ? new Date(Math.min(...allPossibleDates)) : new Date();
-        minDate.setDate(minDate.getDate() - 7); // Arretra di 7 giorni dal primo ticket per dare respiro
-        minDate.setHours(0,0,0,0);
-
-        // Calcola giorni totali per coprire fino a 30gg nel futuro
-        const maxDate = new Date(); maxDate.setDate(maxDate.getDate() + 30);
-        const totalDays = Math.ceil((maxDate - minDate) / 86400000);
-        
-        // Render Header
-        let hHtml = `<div class="sticky-col" style="height:45px; background:#0f172a; border-right:4px solid #3b82f6;"></div>`;
-        for (let i = 0; i < totalDays; i++) {
-            let d = new Date(minDate); d.setDate(d.getDate() + i);
-            hHtml += `<div class="timeline-cell">${d.getDate()}/${d.getMonth()+1}</div>`;
+    function getDaysArray(start, end) {
+        let arr = [];
+        for(let dt=new Date(start); dt<=end; dt.setDate(dt.getDate()+1)) {
+            arr.push(new Date(dt));
         }
-        header.innerHTML = hHtml;
+        return arr;
+    }
 
-        content.innerHTML = '';
+    const days = getDaysArray(startDate, endDate);
+
+    async function renderGantt() {
+        // 1. Header
+        let headRow = `<tr><th class="col-id">ID</th><th class="col-titolo">Titolo Ticket</th>`;
+        const todayStr = new Date().toLocaleDateString('sv-SE');
+
+        days.forEach(day => {
+            const dStr = day.toLocaleDateString('sv-SE');
+            const isToday = dStr === todayStr ? 'today' : '';
+            const isWeekend = (day.getDay() === 0 || day.getDay() === 6) ? 'weekend' : '';
+            headRow += `<th class="day-col ${isToday} ${isWeekend}">${day.getDate()}<br><small>${day.toLocaleDateString('it-IT', {weekday:'short'})}</small></th>`;
+        });
+        headRow += `</tr>`;
+        document.getElementById('gantt-head').innerHTML = headRow;
+
+        // 2. Dati
+        const { data: tickets, error } = await _supabase.from('tickets').select('*').order('inizioprevisto', { ascending: true });
+        if (error) return;
+
+        let bodyHtml = '';
         tickets.forEach(t => {
-            const mapping = [
-                {start:'datanuovo', end:'datanuovos', label:'Nuovo', class:'st-nuovo', key:'nuovo'},
-                {start:'datainlavorazione', end:'datainlavoraziones', label:'Lavorazione', class:'st-lavorazione', key:'lavorazione'},
-                {start:'datarisolto', end:'datarisoltos', label:'Risolto', class:'st-risolto', key:'risolto'},
-                {start:'dataverificato', end:'dataverificatos', label:'Verificato', class:'st-verificato', key:'verificato'},
-                {start:'dataaccettato', end:'dataaccettatos', label:'Accettato', class:'st-accettato', key:'accettato'},
-                {start:'datachiuso', end:'datachiusos', label:'Chiuso', class:'st-chiuso', key:'chiuso'}
-            ];
+            if (!t.inizioprevisto) return; // Salta se manca data inizio
 
-            const activeStates = mapping.filter(m => t[m.start]).map(m => ({...m, d: new Date(t[m.start]), dE: new Date(t[m.end])}));
-            activeStates.sort((a,b) => b.d - a.d);
+            let row = `<tr class="gantt-row">
+                <td class="col-id">${t.id}</td>
+                <td class="col-titolo" title="${t.titolo}">${t.titolo}</td>`;
+
+            // Calcolo posizioni barre
+            const startT = new Date(t.inizioprevisto);
+            const endT = t.fineprevista ? new Date(t.fineprevista) : new Date(t.inizioprevisto);
+            const realEndT = t.datarilascio ? new Date(t.datarilascio) : endT;
+
+            // La cella della barra occupa l'intero spazio rimanente con colspan
+            row += `<td colspan="${days.length}" class="bar-container">`;
             
-            let isDelay = false;
-            if(activeStates.length > 0) {
-                stats[activeStates[0].key]++;
-                if(now > activeStates[0].dE && !t.datachiuso) { isDelay = true; delayCounter++; }
-            }
+            // Calcolo offset in pixel (ogni cella è 35px + 1px border = 36px)
+            const getPos = (date) => {
+                const diff = (new Date(date) - startDate) / (1000 * 60 * 60 * 24);
+                return diff * 36;
+            };
 
-            const row = document.createElement('div');
-            row.className = "row-height";
-            row.innerHTML = `
-                <div class="sticky-col">
-                    <span class="ticket-id-badge">${isDelay ? '⚠️ ' : ''}#${t.id}</span>
-                    <div class="text-white text-[11px] font-bold uppercase truncate w-full">${t.titolo || 'Nessun Titolo'}</div>
-                </div>
-                <div class="track-container" id="track-${t.id}"></div>
-            `;
-            content.appendChild(row);
-
-            const track = document.getElementById(`track-${t.id}`);
+            const left = getPos(startT);
+            const widthTotal = getPos(realEndT) - left + 36;
             
-            mapping.forEach((m, idx) => {
-                if(t[m.start] && t[m.end]) {
-                    const ds = new Date(t[m.start]), de = new Date(t[m.end]);
-                    const bar = document.createElement('div');
-                    bar.className = `seg-bar ${m.class} pos-${idx % 3}`;
-                    bar.style.left = `${((ds - minDate)/86400000)*DAY_PX}px`;
-                    bar.style.width = `${Math.max(15, ((de - ds)/86400000)*DAY_PX)}px`;
-                    bar.innerHTML = `<span>${m.label}</span>`;
-                    track.appendChild(bar);
+            // Barra di durata (quella sotto che mancava)
+            row += `<div class="bar-total" style="left: ${left}px; width: ${widthTotal}px;"></div>`;
+            
+            // Barra progresso (stato attuale)
+            const widthProgress = Math.max(widthTotal * 0.7, 50); // Esempio visivo se non hai %
+            row += `<div class="bar-progress" style="left: ${left}px; width: ${widthProgress}px;" onclick="location.href='form.html?id=${t.id}'">
+                ${t.stato}
+            </div>`;
 
-                    if(m.start === activeStates[0]?.start && now > de && !t.datachiuso) {
-                        const dBar = document.createElement('div');
-                        dBar.className = `seg-bar delay-fill pos-${idx % 3}`;
-                        dBar.style.left = `${((de - minDate)/86400000)*DAY_PX}px`;
-                        dBar.style.width = `${((now - de)/86400000)*DAY_PX}px`;
-                        track.appendChild(dBar);
-                    }
-                }
-            });
+            row += `</td></tr>`;
+            bodyHtml += row;
         });
 
-        document.getElementById('delay-count').innerText = delayCounter;
-        updateChart(stats);
-        
-        const offsetToday = ((now - minDate)/86400000)*DAY_PX;
-        const line = document.createElement('div');
-        line.className = "today-line";
-        line.style.left = `${STICKY_WIDTH + offsetToday}px`;
-        content.appendChild(line);
+        document.getElementById('gantt-body').innerHTML = bodyHtml;
 
-        // Scrolla automaticamente alla data odierna per comodità
-        viewport.scrollLeft = offsetToday - 100;
+        // Auto-scroll alla data odierna
+        setTimeout(() => {
+            const todayEl = document.querySelector('.today');
+            if (todayEl) todayEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }, 500);
     }
 
-    function updateChart(s) {
-        const ctx = document.getElementById('stateChart').getContext('2d');
-        if (myChart) myChart.destroy();
-        myChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['N', 'L', 'R', 'V', 'A', 'C'],
-                datasets: [{
-                    data: [s.nuovo, s.lavorazione, s.risolto, s.verificato, s.accettato, s.chiuso],
-                    backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#64748b']
-                }]
-            },
-            options: { plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 9 } } } }, maintainAspectRatio: false }
-        });
-    }
+    renderGantt();
 </script>
 </body>
 </html>
