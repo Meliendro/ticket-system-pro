@@ -87,7 +87,11 @@
 
         <div class="session-title"><span>Informazioni Base</span></div>
 
-        <div class="grid-3">
+        <div class="grid-4">
+            <div>
+                <label>Data Inserimento</label>
+                <input type="date" id="data_inserimento">
+            </div>
             <div>
                 <label>Stato</label>
                 <select id="stato-select" required onchange="gestisciCambioStato()"></select>
@@ -201,13 +205,10 @@
     }
 
     async function inizializza() {
-        // --- MODIFICA SICUREZZA SESSIONE ---
         const user = await checkUser();
-        if (!user) return; // Interrompe se non c'è utente loggato
-        // ------------------------------------
+        if (!user) return; 
 
         try {
-            // Chiamata unica per caricare tutti i dati necessari
             const [resStati, resTipi, resPriorita, resAmbiti, resMenu] = await Promise.all([
                 _supabase.from('stato').select('id, stato, descrizione, gg').order('id', { ascending: true }),
                 _supabase.from('tipo').select('tipo'),
@@ -216,20 +217,11 @@
                 _supabase.from('menu').select('menu')
             ]);
 
-            // --- DEBUG CONSOLE ---
-            console.log("Stati:", resStati.data);
-            console.log("Ambiti:", resAmbiti.data);
-            console.log("Menu:", resMenu.data);
-            // ---------------------
-
             listaStatiGlobal = resStati.data || [];
             
-            // Popoliamo le select
             if(!resStati.error) popolaSelect('stato-select', resStati, 'stato', 'Stato');
             if(!resTipi.error) popolaSelect('tipo-select', resTipi, 'tipo', 'Tipo');
             if(!resPriorita.error) popolaSelect('priorita-select', resPriorita, 'priorita', 'Priorità');
-            
-            // Popoliamo Ambito e Menu (che ora dovrebbero funzionare grazie a RLS)
             if(!resAmbiti.error) popolaSelect('ambito-select', resAmbiti, 'ambito', 'Ambito');
             if(!resMenu.error) popolaSelect('menu-select', resMenu, 'menu', 'Menu');
 
@@ -240,6 +232,8 @@
             } else {
                 document.getElementById('titolo-header').innerText = "Nuovo Ticket";
                 document.getElementById('tkn-id').innerText = "NEW";
+                // Imposta data odierna per i nuovi ticket
+                document.getElementById('data_inserimento').value = new Date().toLocaleDateString('sv-SE');
             }
         } catch (err) { console.error("Errore critico:", err); }
     }
@@ -256,7 +250,6 @@
             response.data.forEach(i => {
                 const val = i[column];
                 if (!val) return; 
-                
                 const isAnnullato = (typeof val === 'string' && val.toUpperCase() === 'ANNULLATO');
                 const sId = i.id || 0;
                 options += `<option value="${val}" data-id="${sId}" class="${isAnnullato ? 'opt-annullato' : ''}">${val}</option>`;
@@ -268,16 +261,13 @@
     function bloccaStatiAntecedenti(statoAttuale) {
         const select = document.getElementById('stato-select');
         const options = select.options;
-        
         const attualeFound = listaStatiGlobal.find(s => s.stato === statoAttuale);
         if (!attualeFound) return;
-        
         const currentOrder = attualeFound.id;
 
         for (let i = 0; i < options.length; i++) {
             const optId = parseInt(options[i].getAttribute('data-id'));
             const optVal = options[i].value.toUpperCase();
-
             if (optId < currentOrder && optVal !== 'ANNULLATO') {
                 options[i].disabled = true;
             }
@@ -287,7 +277,6 @@
     function gestisciCambioStato() {
         const valSeltOriginale = document.getElementById('stato-select').value || "";
         const valSelt = valSeltOriginale.toUpperCase().trim();
-        
         const oggi = new Date();
         const oggiStr = oggi.toLocaleDateString('sv-SE'); 
 
@@ -299,7 +288,6 @@
             box.innerHTML = `<strong>Dettaglio:</strong> ${statoTrovato.descrizione || '...'}<br><strong>Tempo limite:</strong> ${giorni} gg`;
 
             let idCampoBase = "";
-
             if (valSelt.includes("NUOVO") || valSelt.includes("APERTO")) idCampoBase = "datanuovo";
             else if (valSelt.includes("LAVORAZIONE") || valSelt.includes("CORSO")) idCampoBase = "datainlavorazione";
             else if (valSelt.includes("RISOLTO")) idCampoBase = "datarisolto";
@@ -326,6 +314,7 @@
         const { data } = await _supabase.from('tickets').select('*').eq('id', id).single();
         if (data) {
             document.getElementById('ticket-id').value = data.id;
+            document.getElementById('data_inserimento').value = data.data_inserimento || '';
             document.getElementById('titolo').value = data.titolo || '';
             document.getElementById('descrizione').value = data.descrizione || '';
             document.getElementById('stato-select').value = data.stato || '';
@@ -347,13 +336,8 @@
                 if (fScad) fScad.value = data[f + 's'] || '';
             });
 
-            if (data.stato) {
-                bloccaStatiAntecedenti(data.stato);
-            }
-
-            if(data.stato && data.stato.toUpperCase() === 'ANNULLATO') {
-                disabilitaTutto();
-            }
+            if (data.stato) bloccaStatiAntecedenti(data.stato);
+            if(data.stato && data.stato.toUpperCase() === 'ANNULLATO') disabilitaTutto();
 
             const stFound = listaStatiGlobal.find(s => s.stato === data.stato);
             if(stFound) {
@@ -372,14 +356,12 @@
 
     document.getElementById('form-ticket').addEventListener('submit', async (e) => {
         e.preventDefault();
-        
         const user = await checkUser();
         if (!user) return;
 
         const id = document.getElementById('ticket-id').value;
         const oraAttuale = new Date().toLocaleString('it-IT');
         let logAttuale = document.getElementById('logtecnico').value;
-        
         const nuovoStato = document.getElementById('stato-select').value;
         let notaLog = `[${oraAttuale}] Stato: ${nuovoStato} (da: ${user.email})\n`;
         
@@ -390,6 +372,7 @@
         logAttuale = notaLog + (logAttuale || "");
 
         const payload = {
+            data_inserimento: document.getElementById('data_inserimento').value || null,
             titolo: document.getElementById('titolo').value,
             descrizione: document.getElementById('descrizione').value,
             stato: nuovoStato,
@@ -406,9 +389,7 @@
             updated_by: user.id
         };
 
-        if (!id) {
-            payload.created_by = user.id;
-        }
+        if (!id) { payload.created_by = user.id; }
 
         workflowFields.forEach(f => {
             payload[f] = document.getElementById(f).value || null;
