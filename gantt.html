@@ -13,7 +13,6 @@
         
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; margin: 0; overflow-x: hidden; }
         
-        /* Contenitore Gantt principale */
         .gantt-viewport { 
             overflow: auto; 
             background: #1e293b; 
@@ -21,6 +20,7 @@
             border: 1px solid #334155; 
             height: 70vh; 
             position: relative;
+            scroll-behavior: smooth;
         }
 
         .row-height { 
@@ -28,15 +28,14 @@
             border-bottom: 1px solid #334155; 
             display: flex; 
             position: relative;
-            width: max-content; /* Fondamentale per far scorrere le barre */
+            width: max-content;
         }
         
-        /* COLONNA FISSA - CORREZIONE DEFINITIVA */
         .sticky-col { 
             position: sticky; 
             left: 0; 
-            z-index: 999; /* Valore altissimo per stare sopra tutto */
-            background-color: #1e293b !important; /* Colore solido no trasparenza */
+            z-index: 999;
+            background-color: #1e293b !important;
             min-width: 280px; 
             width: 280px;
             display: flex; 
@@ -44,20 +43,15 @@
             justify-content: center;
             padding: 0 20px;
             border-right: 4px solid #3b82f6;
-            box-shadow: 10px 0 15px rgba(0,0,0,0.5); /* Ombra per staccare visivamente */
+            box-shadow: 10px 0 15px rgba(0,0,0,0.5);
         }
 
-        /* AREA BARRE */
-        .track-container { 
-            position: relative; 
-            flex-grow: 1;
-            z-index: 10;
-        }
+        .track-container { position: relative; flex-grow: 1; z-index: 10; }
         
         .baseline-ticket {
             position: absolute;
             height: 6px;
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.2);
             border-radius: 10px;
             z-index: 5;
             top: 50%;
@@ -71,10 +65,8 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
-        /* Posizioni verticali barre per non sovrapporsi */
         .pos-0 { top: 15px; } .pos-1 { top: 48px; } .pos-2 { top: 81px; }
 
-        /* Barra ritardo con animazione tratteggiata */
         .delay-fill {
             background: repeating-linear-gradient(45deg, #ef4444, #ef4444 10px, #7f1d1d 10px, #7f1d1d 20px);
             border: 1px solid #f87171; z-index: 15;
@@ -87,17 +79,10 @@
         .timeline-cell { 
             min-width: 50px; text-align: center; font-size: 10px; 
             color: #94a3b8; border-right: 1px solid #334155; 
-            padding: 12px 0; background: #1e293b;
+            padding: 12px 0; background: #0f172a;
         }
 
-        /* Header Timeline fisso in alto */
-        #timeline-header {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            display: flex;
-            width: max-content;
-        }
+        #timeline-header { position: sticky; top: 0; z-index: 1000; display: flex; width: max-content; }
 
         .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 50; pointer-events: none; }
         
@@ -111,12 +96,9 @@
             margin-bottom: 4px;
             display: inline-block;
         }
-        
-        .delay-alert { color: #ef4444; animation: blink 1s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } }
     </style>
 </head>
-<body class="p-6 md:p-10">
+<body class="p-6 md:p-10" onload="loadGantt()">
 
 <div class="max-w-[1800px] mx-auto">
     <div class="flex flex-wrap justify-between items-center mb-8 gap-4">
@@ -137,17 +119,16 @@
         <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl flex items-center gap-6">
             <div class="bg-red-500/20 p-4 rounded-xl"><i class="fas fa-clock text-red-500 text-2xl"></i></div>
             <div>
-                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Ticket in Ritardo</p>
+                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">SLA Superati</p>
                 <p id="delay-count" class="text-4xl font-black text-white">0</p>
             </div>
         </div>
-        <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl flex items-center gap-6">
-            <div class="bg-blue-500/20 p-4 rounded-xl"><i class="fas fa-tasks text-blue-500 text-2xl"></i></div>
-            <div class="flex-grow h-16"><canvas id="stateChart"></canvas></div>
+        <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl flex-grow h-32">
+            <canvas id="stateChart"></canvas>
         </div>
         <button onclick="loadGantt()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-6 rounded-2xl transition group">
-            <i class="fas fa-sync-alt text-2xl text-blue-400 group-hover:rotate-180 transition-transform duration-500"></i>
-            <p class="text-white font-bold mt-2 uppercase text-xs">Aggiorna Gantt</p>
+            <i class="fas fa-sync-alt text-2xl text-blue-400 group-hover:rotate-180 transition"></i>
+            <p class="text-white font-bold mt-2 uppercase text-xs">Aggiorna</p>
         </button>
     </div>
 
@@ -182,14 +163,24 @@
         let delayCounter = 0;
         let stats = { nuovo:0, lavorazione:0, risolto:0, verificato:0, accettato:0, chiuso:0 };
         
-        let minDate = new Date();
-        minDate.setDate(minDate.getDate() - 10);
+        // CALCOLO DATA INIZIO DINAMICA
+        let allPossibleDates = [];
+        tickets.forEach(t => {
+            ['data_inserimento','datanuovo','datainlavorazione','datarisolto'].forEach(k => {
+                if(t[k]) allPossibleDates.push(new Date(t[k]));
+            });
+        });
+        
+        let minDate = allPossibleDates.length > 0 ? new Date(Math.min(...allPossibleDates)) : new Date();
+        minDate.setDate(minDate.getDate() - 7); // Arretra di 7 giorni dal primo ticket per dare respiro
         minDate.setHours(0,0,0,0);
 
-        const totalDays = 90; 
+        // Calcola giorni totali per coprire fino a 30gg nel futuro
+        const maxDate = new Date(); maxDate.setDate(maxDate.getDate() + 30);
+        const totalDays = Math.ceil((maxDate - minDate) / 86400000);
         
         // Render Header
-        let hHtml = `<div class="sticky-col" style="height:45px; border-bottom:1px solid #334155; box-shadow:none;"></div>`;
+        let hHtml = `<div class="sticky-col" style="height:45px; background:#0f172a; border-right:4px solid #3b82f6;"></div>`;
         for (let i = 0; i < totalDays; i++) {
             let d = new Date(minDate); d.setDate(d.getDate() + i);
             hHtml += `<div class="timeline-cell">${d.getDate()}/${d.getMonth()+1}</div>`;
@@ -207,13 +198,13 @@
                 {start:'datachiuso', end:'datachiusos', label:'Chiuso', class:'st-chiuso', key:'chiuso'}
             ];
 
-            const states = mapping.filter(m => t[m.start]).map(m => ({...m, d: new Date(t[m.start]), dE: new Date(t[m.end])}));
-            states.sort((a,b) => b.d - a.d);
+            const activeStates = mapping.filter(m => t[m.start]).map(m => ({...m, d: new Date(t[m.start]), dE: new Date(t[m.end])}));
+            activeStates.sort((a,b) => b.d - a.d);
             
             let isDelay = false;
-            if(states.length > 0) {
-                stats[states[0].key]++;
-                if(now > states[0].dE && !t.datachiuso) { isDelay = true; delayCounter++; }
+            if(activeStates.length > 0) {
+                stats[activeStates[0].key]++;
+                if(now > activeStates[0].dE && !t.datachiuso) { isDelay = true; delayCounter++; }
             }
 
             const row = document.createElement('div');
@@ -221,8 +212,7 @@
             row.innerHTML = `
                 <div class="sticky-col">
                     <span class="ticket-id-badge">${isDelay ? '⚠️ ' : ''}#${t.id}</span>
-                    <div class="text-white text-[11px] font-bold uppercase truncate w-full" title="${t.titolo}">${t.titolo || 'Nessun Titolo'}</div>
-                    <div class="text-slate-400 text-[9px] mt-1">${t.stato || 'Aperto'}</div>
+                    <div class="text-white text-[11px] font-bold uppercase truncate w-full">${t.titolo || 'Nessun Titolo'}</div>
                 </div>
                 <div class="track-container" id="track-${t.id}"></div>
             `;
@@ -230,18 +220,6 @@
 
             const track = document.getElementById(`track-${t.id}`);
             
-            // Baseline grigia per il percorso totale
-            const allDates = [t.data_inserimento, ...mapping.map(m => t[m.start])].filter(d => d).map(d => new Date(d));
-            if(allDates.length > 0) {
-                const start = new Date(Math.min(...allDates));
-                const end = t.datachiuso ? new Date(t.datachiuso) : now;
-                const base = document.createElement('div');
-                base.className = "baseline-ticket";
-                base.style.left = `${((start - minDate)/86400000)*DAY_PX}px`;
-                base.style.width = `${Math.max(20, ((end - start)/86400000)*DAY_PX)}px`;
-                track.appendChild(base);
-            }
-
             mapping.forEach((m, idx) => {
                 if(t[m.start] && t[m.end]) {
                     const ds = new Date(t[m.start]), de = new Date(t[m.end]);
@@ -252,8 +230,7 @@
                     bar.innerHTML = `<span>${m.label}</span>`;
                     track.appendChild(bar);
 
-                    // Barra ritardo tratteggiata
-                    if(m.start === states[0]?.start && now > de && !t.datachiuso) {
+                    if(m.start === activeStates[0]?.start && now > de && !t.datachiuso) {
                         const dBar = document.createElement('div');
                         dBar.className = `seg-bar delay-fill pos-${idx % 3}`;
                         dBar.style.left = `${((de - minDate)/86400000)*DAY_PX}px`;
@@ -267,14 +244,14 @@
         document.getElementById('delay-count').innerText = delayCounter;
         updateChart(stats);
         
-        // Linea "Oggi"
         const offsetToday = ((now - minDate)/86400000)*DAY_PX;
         const line = document.createElement('div');
         line.className = "today-line";
         line.style.left = `${STICKY_WIDTH + offsetToday}px`;
         content.appendChild(line);
 
-        setTimeout(() => { viewport.scrollLeft = offsetToday; }, 500);
+        // Scrolla automaticamente alla data odierna per comodità
+        viewport.scrollLeft = offsetToday - 100;
     }
 
     function updateChart(s) {
@@ -286,15 +263,12 @@
                 labels: ['N', 'L', 'R', 'V', 'A', 'C'],
                 datasets: [{
                     data: [s.nuovo, s.lavorazione, s.risolto, s.verificato, s.accettato, s.chiuso],
-                    backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#64748b'],
-                    borderRadius: 5
+                    backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#64748b']
                 }]
             },
             options: { plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 9 } } } }, maintainAspectRatio: false }
         });
     }
-
-    window.onload = loadGantt;
 </script>
 </body>
 </html>
