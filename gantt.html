@@ -12,21 +12,22 @@
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
         
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; margin: 0; }
-        .gantt-viewport { overflow-x: auto; background: #1e293b; border-radius: 24px; border: 1px solid #334155; height: 650px; scroll-behavior: smooth; }
-        .row-height { min-height: 125px; border-bottom: 1px solid #334155; position: relative; display: flex; align-items: center; }
+        .gantt-viewport { overflow-x: auto; background: #1e293b; border-radius: 24px; border: 1px solid #334155; height: 650px; scroll-behavior: smooth; position: relative; }
+        .row-height { height: 125px; border-bottom: 1px solid #334155; position: relative; display: flex; align-items: center; }
         
-        .track-container { position: relative; width: 100%; height: 95px; }
+        .track-container { position: relative; width: 100%; height: 100%; display: flex; align-items: center; }
         
         .baseline-ticket {
             position: absolute;
             height: 8px;
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
-            top: 40px; 
             z-index: 5;
             pointer-events: none;
             border: 1px solid #ffffff;
             box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+            top: 50%;
+            transform: translateY(-50%);
         }
 
         .seg-bar { 
@@ -36,9 +37,12 @@
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
-        .seg-bar:hover { transform: scale(1.05); z-index: 60; outline: 2px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .seg-bar:hover { transform: scale(1.05) translateY(-2px); z-index: 60; outline: 2px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
 
-        .pos-0 { top: 4px; } .pos-1 { top: 31px; } .pos-2 { top: 58px; }
+        /* Posizionamento verticale barre rispetto alla riga */
+        .pos-0 { top: 15px; } 
+        .pos-1 { top: 50px; } 
+        .pos-2 { top: 85px; }
 
         .delay-fill {
             background: repeating-linear-gradient(45deg, #ef4444, #ef4444 12px, #991b1b 12px, #991b1b 24px);
@@ -53,10 +57,9 @@
         .st-accettato { background: #ec4899; } .st-chiuso { background: #64748b; }
 
         .timeline-cell { min-width: 50px; text-align: center; font-size: 10px; color: #64748b; border-right: 1px solid #334155; padding: 14px 0; font-family: 'JetBrains Mono', monospace; }
-        .sticky-col { position: sticky; left: 0; z-index: 100; background: #1e293b; border-right: 4px solid #3b82f6; min-width: 250px; box-shadow: 10px 0 20px rgba(0,0,0,0.5); }
+        .sticky-col { position: sticky; left: 0; z-index: 100; background: #1e293b; border-right: 4px solid #3b82f6; min-width: 250px; height: 100%; display: flex; align-items: center; box-shadow: 10px 0 20px rgba(0,0,0,0.5); }
         .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 150; pointer-events: none; }
 
-        /* Classi per evidenziare il ritardo */
         .ticket-delay-id { animation: blink-text 1.5s infinite; font-weight: 900 !important; }
         .row-delay-bg { background: linear-gradient(90deg, rgba(153, 27, 27, 0.2) 0%, rgba(30, 41, 59, 0) 100%); }
     </style>
@@ -64,6 +67,15 @@
 <body class="p-8" onload="loadGantt()">
 
 <div class="max-w-[1900px] mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <a href="menu.html" class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-2 rounded-xl transition flex items-center gap-2 text-sm font-bold">
+            <i class="fas fa-arrow-left"></i> Menu Principale
+        </a>
+        <div class="text-right">
+            <h1 class="text-2xl font-black italic text-white uppercase tracking-tighter">PROJECT <span class="text-blue-500">CONTROL</span></h1>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
         <div class="bg-[#1e293b] border border-slate-700 rounded-[20px] p-6 flex flex-col justify-center items-center border-l-8 border-red-600 shadow-xl">
             <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">SLA Superati</h3>
@@ -75,10 +87,9 @@
                 <canvas id="stateChart"></canvas>
             </div>
         </div>
-        <div class="bg-[#1e293b] border border-slate-700 rounded-[20px] p-6 flex flex-col justify-center border-l-8 border-blue-600 shadow-xl px-10">
-            <h1 class="text-2xl font-black italic text-white uppercase tracking-tighter">PROJECT <span class="text-blue-500">CONTROL</span></h1>
-            <button onclick="loadGantt()" class="mt-6 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black transition-all text-xs uppercase shadow-lg flex items-center justify-center">
-                <i class="fas fa-sync-alt mr-3"></i>Aggiorna
+        <div class="bg-[#1e293b] border border-slate-700 rounded-[20px] p-6 flex flex-col justify-center px-10">
+            <button onclick="loadGantt()" class="bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black transition-all text-xs uppercase shadow-lg flex items-center justify-center">
+                <i class="fas fa-sync-alt mr-3"></i>Aggiorna Dati
             </button>
         </div>
     </div>
@@ -124,10 +135,10 @@
         minDate.setHours(0,0,0,0);
 
         const totalDays = 120; 
-        let hHtml = `<div class="sticky-col h-full border-r border-slate-700"></div>`;
+        let hHtml = `<div class="sticky-col border-r border-slate-700" style="height: 50px; background: #1e293b;"></div>`;
         for (let i = 0; i < totalDays; i++) {
             let d = new Date(minDate); d.setDate(d.getDate() + i);
-            hHtml += `<div class="timeline-cell">${d.getDate()}/${d.getMonth()+1}</div>`;
+            hHtml += `<div class="timeline-cell" style="min-width: 50px;">${d.getDate()}/${d.getMonth()+1}</div>`;
         }
         header.innerHTML = hHtml;
         header.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
@@ -143,7 +154,6 @@
                 {start:'datachiuso', end:'datachiusos', label:'Chiuso', class:'st-chiuso', key:'chiuso'}
             ];
 
-            // Calcolo ritardo per evidenziazione testuale
             const activeStates = mapping.filter(m => t[m.start] && !isNaN(new Date(t[m.start]).getTime()))
                                          .map(m => ({...m, d: new Date(t[m.start]), dEnd: new Date(t[m.end])}));
             activeStates.sort((a,b) => b.d - a.d);
@@ -161,21 +171,23 @@
             row.className = `flex row-height relative hover:bg-slate-800/40 transition-colors ${isDelay ? 'row-delay-bg' : ''}`;
             row.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
             
-            row.innerHTML = `<div class="sticky-col flex items-center px-8 border-r border-slate-700 z-[100] ${isDelay ? 'row-delay-bg' : ''}">
-                <div>
-                    <div class="font-black text-sm ${isDelay ? 'ticket-delay-id' : 'text-blue-500'}">
-                        ${isDelay ? '⚠️ ' : ''}#${t.id}
-                    </div>
-                    <div class="font-bold text-white text-[11px] uppercase truncate w-44">
-                        ${t.titolo || 'N/A'}
+            row.innerHTML = `
+                <div class="sticky-col px-8 border-r border-slate-700 ${isDelay ? 'row-delay-bg' : ''}">
+                    <div>
+                        <div class="font-black text-sm ${isDelay ? 'ticket-delay-id' : 'text-blue-500'}">
+                            ${isDelay ? '⚠️ ' : ''}#${t.id}
+                        </div>
+                        <div class="font-bold text-white text-[11px] uppercase truncate w-44">
+                            ${t.titolo || 'N/A'}
+                        </div>
                     </div>
                 </div>
-            </div><div class="flex-grow relative track-container" id="track-${t.id}"></div>`;
+                <div class="track-container flex-grow relative" id="track-${t.id}"></div>
+            `;
             content.appendChild(row);
 
             const track = document.getElementById(`track-${t.id}`);
 
-            // Linea base
             const validDates = [t.data_inserimento, t.datanuovo, t.datainlavorazione, t.datarisolto, t.dataverificato, t.dataaccettato, t.datachiuso]
                 .filter(d => d && !isNaN(new Date(d).getTime())).map(d => new Date(d));
 
