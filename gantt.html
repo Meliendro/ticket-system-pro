@@ -17,17 +17,17 @@
         
         .track-container { position: relative; width: 100%; height: 95px; }
         
-        /* Linea di fondo (Binario del Ticket) potenziata */
+        /* Linea di fondo (Binario del Ticket) - ORA BIANCA */
         .baseline-ticket {
             position: absolute;
             height: 8px;
-            background: #0f172a;
+            background: rgba(255, 255, 255, 0.8); /* Bianco con leggera opacità */
             border-radius: 20px;
             top: 40px; 
             z-index: 5;
             pointer-events: none;
-            border: 1px solid #334155;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+            border: 1px solid rgba(0,0,0,0.2);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
         }
 
         /* Barre di Stato */
@@ -105,6 +105,24 @@
         try {
             const { data: tickets, error } = await client.from('tickets').select('*');
             if (error) throw error;
+            
+            // --- ORDINAMENTO DECRESCENTE AGGIUNTO QUI ---
+            if (tickets && tickets.length > 0) {
+                tickets.sort((a, b) => {
+                    // Trova la data più recente per il ticket A
+                    const allDatesA = [a.data_inserimento, a.datanuovo, a.datainlavorazione, a.datarisolto, a.datachiuso].filter(d => d).map(d => new Date(d));
+                    const maxDateA = allDatesA.length > 0 ? new Date(Math.max(...allDatesA)) : new Date(0);
+                    
+                    // Trova la data più recente per il ticket B
+                    const allDatesB = [b.data_inserimento, b.datanuovo, b.datainlavorazione, b.datarisolto, b.datachiuso].filter(d => d).map(d => new Date(d));
+                    const maxDateB = allDatesB.length > 0 ? new Date(Math.max(...allDatesB)) : new Date(0);
+                    
+                    // Ordina in modo decrescente (dal più recente al più vecchio)
+                    return maxDateB - maxDateA;
+                });
+            }
+            // --- FINE ORDINAMENTO ---
+
             render(tickets);
         } catch (err) {
             console.error("Errore:", err);
@@ -153,7 +171,7 @@
 
             const track = document.getElementById(`track-${t.id}`);
 
-            // LINEA BASE ROBUSTA
+            // LINEA BASE ROBUSTA (ORA COLORE BIANCO)
             const allDates = [
                 t.data_inserimento, t.datanuovo, t.datainlavorazione, t.datarisolto, 
                 t.dataverificato, t.dataaccettato, t.datachiuso
