@@ -3,79 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RIVIT GANTT | Multi-State History</title>
+    <title>RIVIT ADVANCED GANTT | Dashboard & Analytics</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
         
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; margin: 0; }
-        .gantt-viewport { overflow-x: auto; background: #1e293b; border-radius: 24px; border: 1px solid #334155; }
+        .gantt-viewport { overflow-x: auto; background: #1e293b; border-radius: 24px; border: 1px solid #334155; height: 600px; }
         .row-height { min-height: 110px; border-bottom: 1px solid #334155; position: relative; display: flex; align-items: center; }
         
-        .track-container { position: relative; width: 100%; height: 80px; margin-top: 10px; }
+        .track-container { position: relative; width: 100%; height: 85px; margin-top: 5px; }
         
-        /* Barre di Stato */
         .seg-bar { 
-            position: absolute; 
-            height: 24px; 
-            border-radius: 4px; 
-            z-index: 20; 
-            cursor: help;
-            border: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            align-items: center;
-            padding: 0 6px;
-            font-size: 8px;
-            font-weight: 800;
-            text-transform: uppercase;
-            white-space: nowrap;
+            position: absolute; height: 22px; border-radius: 4px; z-index: 20; cursor: help;
+            border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center;
+            padding: 0 6px; font-size: 8px; font-weight: 800; text-transform: uppercase;
             transition: transform 0.2s;
         }
         .seg-bar:hover { transform: scaleY(1.2); z-index: 50; outline: 2px solid white; }
 
-        /* Stili specifici per posizione verticale (per non sovrapporle troppo) */
-        .pos-0 { top: 5px; }
-        .pos-1 { top: 32px; }
-        .pos-2 { top: 59px; }
+        .pos-0 { top: 5px; } .pos-1 { top: 30px; } .pos-2 { top: 55px; }
 
-        /* Delay Pattern */
         .delay-fill {
             background: repeating-linear-gradient(45deg, rgba(239, 68, 68, 0.7), rgba(239, 68, 68, 0.7) 10px, rgba(153, 27, 27, 0.7) 10px, rgba(153, 27, 27, 0.7) 20px);
-            border: 1px solid #ef4444;
-            animation: pulse-red 2s infinite;
+            border: 1px solid #ef4444; animation: pulse-red 2s infinite;
         }
 
-        @keyframes pulse-red {
-            0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; }
-        }
+        @keyframes pulse-red { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
 
-        /* Colori */
-        .st-nuovo { background: #3b82f6; }
-        .st-lavorazione { background: #f59e0b; }
-        .st-risolto { background: #10b981; }
-        .st-verificato { background: #8b5cf6; }
-        .st-accettato { background: #ec4899; }
-        .st-chiuso { background: #64748b; }
+        .st-nuovo { background: #3b82f6; } .st-lavorazione { background: #f59e0b; }
+        .st-risolto { background: #10b981; } .st-verificato { background: #8b5cf6; }
+        .st-accettato { background: #ec4899; } .st-chiuso { background: #64748b; }
 
         .timeline-cell { min-width: 50px; text-align: center; font-size: 10px; color: #64748b; border-right: 1px solid #334155; padding: 12px 0; font-family: 'JetBrains Mono', monospace; }
-        .sticky-col { position: sticky; left: 0; z-index: 100; background: #1e293b; border-right: 3px solid #3b82f6; min-width: 250px; max-width: 250px; box-shadow: 10px 0 15px -10px rgba(0,0,0,0.5); }
+        .sticky-col { position: sticky; left: 0; z-index: 100; background: #1e293b; border-right: 3px solid #3b82f6; min-width: 250px; box-shadow: 10px 0 15px -10px rgba(0,0,0,0.5); }
         .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 150; pointer-events: none; }
+        
+        /* Stats Styles */
+        .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 20px; }
     </style>
 </head>
 <body class="p-6">
 
 <div class="max-w-[1900px] mx-auto">
-    <header class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-3xl font-black italic text-white tracking-tighter uppercase">RIVIT <span class="text-blue-500">History Gantt</span></h1>
-            <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Cronologia completa scadenze e ritardi per stato</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="stat-card flex flex-col justify-center items-center border-l-8 border-red-500">
+            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest">Ticket in Ritardo</h3>
+            <span id="delay-count" class="text-5xl font-black text-white">0</span>
+            <p class="text-[10px] text-red-400 mt-2 font-bold animate-pulse">AZIONE RICHIESTA</p>
         </div>
-        <button onclick="loadGantt()" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-black transition-all shadow-lg">
-            SYNC DATA
-        </button>
-    </header>
+
+        <div class="stat-card flex flex-col items-center">
+            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">Distribuzione Stati</h3>
+            <div class="w-full h-32 flex justify-center">
+                <canvas id="stateChart"></canvas>
+            </div>
+        </div>
+
+        <div class="stat-card flex flex-col justify-center border-l-8 border-blue-500">
+            <h1 class="text-2xl font-black italic text-white uppercase tracking-tighter">RIVIT <span class="text-blue-500">GANTT 4.0</span></h1>
+            <button onclick="loadGantt()" class="mt-4 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-xl font-bold transition-all text-sm uppercase">
+                <i class="fas fa-sync mr-2"></i>Sincronizza Dati
+            </button>
+        </div>
+    </div>
 
     <div class="gantt-viewport" id="viewport">
         <div id="timeline-header" class="flex bg-slate-800/90 backdrop-blur sticky top-0 z-[110]"></div>
@@ -90,6 +84,7 @@
     
     const DAY_PX = 50; 
     const COL_WIDTH = 250;
+    let myChart = null;
 
     async function loadGantt() {
         const { data: tickets, error } = await client.from('tickets').select('*');
@@ -100,6 +95,8 @@
         const header = document.getElementById('timeline-header');
         const content = document.getElementById('gantt-content');
         const now = new Date();
+        let delayCounter = 0;
+        let stateCounts = { nuovo: 0, lavorazione: 0, risolto: 0, verificato: 0, accettato: 0, chiuso: 0 };
         
         let minDate = new Date();
         minDate.setDate(minDate.getDate() - 5);
@@ -121,77 +118,72 @@
             row.className = "flex row-height relative hover:bg-slate-800/30 transition-colors";
             row.style.width = `${COL_WIDTH + (totalDays * DAY_PX)}px`;
 
-            row.innerHTML = `
-                <div class="sticky-col flex items-center px-6 border-r border-slate-700 z-[100]">
-                    <div>
-                        <div class="font-black text-blue-500 text-xs">#${t.id}</div>
-                        <div class="font-bold text-white text-[10px] uppercase truncate w-40">${t.titolo || 'TICKET'}</div>
-                        <div class="text-[8px] text-slate-500 mt-1 font-bold">${t.operatore || 'NON ASSEGNATO'}</div>
-                    </div>
-                </div>
-                <div class="flex-grow relative track-container" id="track-${t.id}"></div>
-            `;
+            row.innerHTML = `<div class="sticky-col flex items-center px-6 border-r border-slate-700 z-[100]">
+                <div><div class="font-black text-blue-500 text-xs">#${t.id}</div><div class="font-bold text-white text-[10px] uppercase truncate w-40">${t.titolo || 'TICKET'}</div></div>
+                </div><div class="flex-grow relative track-container" id="track-${t.id}"></div>`;
             content.appendChild(row);
-            const track = document.getElementById(`track-${t.id}`);
 
             const mapping = [
-                {start:'datanuovo', end:'datanuovos', label:'Nuovo', class:'st-nuovo'},
-                {start:'datainlavorazione', end:'datainlavoraziones', label:'Lavorazione', class:'st-lavorazione'},
-                {start:'datarisolto', end:'datarisoltos', label:'Risolto', class:'st-risolto'},
-                {start:'dataverificato', end:'dataverificatos', label:'Verificato', class:'st-verificato'},
-                {start:'dataaccettato', end:'dataaccettatos', label:'Accettato', class:'st-accettato'},
-                {start:'datachiuso', end:'datachiusos', label:'Chiuso', class:'st-chiuso'}
+                {start:'datanuovo', end:'datanuovos', label:'Nuovo', class:'st-nuovo', key:'nuovo'},
+                {start:'datainlavorazione', end:'datainlavoraziones', label:'Lavorazione', class:'st-lavorazione', key:'lavorazione'},
+                {start:'datarisolto', end:'datarisoltos', label:'Risolto', class:'st-risolto', key:'risolto'},
+                {start:'dataverificato', end:'dataverificatos', label:'Verificato', class:'st-verificato', key:'verificato'},
+                {start:'dataaccettato', end:'dataaccettatos', label:'Accettato', class:'st-accettato', key:'accettato'},
+                {start:'datachiuso', end:'datachiusos', label:'Chiuso', class:'st-chiuso', key:'chiuso'}
             ];
 
-            // Identifichiamo l'ultimo stato inserito (quello attivo)
             const activeStates = mapping.filter(m => t[m.start]).map(m => ({...m, d: new Date(t[m.start])}));
             activeStates.sort((a,b) => b.d - a.d);
             const currentStateKey = activeStates.length > 0 ? activeStates[0].start : null;
+            if(activeStates.length > 0) stateCounts[activeStates[0].key]++;
 
-            mapping.forEach((m, index) => {
+            mapping.forEach((m, idx) => {
                 if(t[m.start] && t[m.end]) {
-                    const dS = new Date(t[m.start]);
-                    const dE = new Date(t[m.end]);
-                    const offset = (dS - minDate) / 86400000;
-                    const duration = Math.max(0.1, (dE - dS) / 86400000);
-                    
-                    // 1. Barra programmata (Storica o Attiva)
+                    const dS = new Date(t[m.start]), dE = new Date(t[m.end]);
                     const bar = document.createElement('div');
-                    bar.className = `seg-bar ${m.class} pos-${index % 3}`; // Distribuzione su 3 livelli verticali
-                    bar.style.left = `${offset * DAY_PX}px`;
-                    bar.style.width = `${duration * DAY_PX}px`;
+                    bar.className = `seg-bar ${m.class} pos-${idx % 3}`;
+                    bar.style.left = `${((dS - minDate)/86400000)*DAY_PX}px`;
+                    bar.style.width = `${(Math.max(0.1, (dE - dS)/86400000))*DAY_PX}px`;
                     bar.innerHTML = `<span>${m.label}</span>`;
                     
-                    // Tooltip base
-                    let tooltip = `STATO: ${m.label}\nINIZIO: ${dS.toLocaleDateString()}\nSCADENZA: ${dE.toLocaleDateString()}`;
-
-                    // 2. Aggiunta ritardo se è lo stato attivo e ha sforato
                     if(m.start === currentStateKey && now > dE && !t.datachiuso) {
-                        const delayOffset = (dE - minDate) / 86400000;
-                        const delayDur = (now - dE) / 86400000;
-                        
+                        delayCounter++;
                         const dBar = document.createElement('div');
-                        dBar.className = `seg-bar delay-fill pos-${index % 3}`;
-                        dBar.style.left = `${delayOffset * DAY_PX}px`;
-                        dBar.style.width = `${delayDur * DAY_PX}px`;
-                        dBar.style.zIndex = "15";
-                        
-                        const ritardoGiorni = Math.floor(delayDur);
-                        tooltip += `\n⚠️ IN RITARDO DI ${ritardoGiorni} GIORNI`;
-                        track.appendChild(dBar);
+                        dBar.className = `seg-bar delay-fill pos-${idx % 3}`;
+                        dBar.style.left = `${((dE - minDate)/86400000)*DAY_PX}px`;
+                        dBar.style.width = `${((now - dE)/86400000)*DAY_PX}px`;
+                        document.getElementById(`track-${t.id}`).appendChild(dBar);
                     }
-
-                    bar.title = tooltip;
-                    track.appendChild(bar);
+                    document.getElementById(`track-${t.id}`).appendChild(bar);
                 }
             });
         });
 
+        document.getElementById('delay-count').innerText = delayCounter;
+        updateChart(stateCounts);
         const tLine = document.createElement('div');
         tLine.className = "today-line";
-        tLine.style.left = `${COL_WIDTH + ((now - minDate) / 86400000) * DAY_PX}px`;
+        tLine.style.left = `${COL_WIDTH + ((now - minDate)/86400000)*DAY_PX}px`;
         content.appendChild(tLine);
     }
+
+    function updateChart(counts) {
+        const ctx = document.getElementById('stateChart').getContext('2d');
+        if (myChart) myChart.destroy();
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(counts),
+                datasets: [{
+                    data: Object.values(counts),
+                    backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#64748b'],
+                    borderWidth: 0
+                }]
+            },
+            options: { plugins: { legend: { display: false } }, cutout: '70%' }
+        });
+    }
+
     loadGantt();
 </script>
 </body>
