@@ -19,9 +19,15 @@
         
         /* Baseline Bianca dinamica */
         .baseline-ticket {
-            position: absolute; height: 6px; background: rgba(255, 255, 255, 0.4);
-            border-radius: 20px; top: 41px; z-index: 5; pointer-events: none;
-            border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+            position: absolute; height: 4px; background: rgba(255, 255, 255, 0.3);
+            border-radius: 20px; top: 45px; z-index: 5; pointer-events: none;
+        }
+
+        /* Barra Pianificazione (Inizioprevista - Fineprevista) */
+        .planning-bar {
+            position: absolute; height: 40px; background: rgba(51, 65, 85, 0.4);
+            border: 1px dashed rgba(255, 255, 255, 0.2); border-radius: 8px;
+            top: 25px; z-index: 2; pointer-events: none;
         }
 
         .seg-bar { 
@@ -114,9 +120,15 @@
             if (tickets && tickets.length > 0) {
                 let earliest = new Date();
                 tickets.forEach(t => {
+                    // Controlla data inserimento
                     if (t.data_inserimento) {
                         const d = new Date(t.data_inserimento);
                         if (d < earliest) earliest = d;
+                    }
+                    // Controlla anche data inizio prevista per il planning
+                    if (t.inizioprevista) {
+                        const dP = new Date(t.inizioprevista);
+                        if (dP < earliest) earliest = dP;
                     }
                 });
                 earliest.setDate(earliest.getDate() - 5);
@@ -133,7 +145,7 @@
         let delayCount = 0;
         let stats = { 'Nuovo': 0, 'In Lavorazione': 0, 'Risolto': 0, 'Verificato': 0, 'Accettato': 0, 'Chiuso': 0, 'Altro': 0 };
 
-        const totalDays = 200;
+        const totalDays = 250; // Aumentato per coprire scadenze previste
         header.innerHTML = `<div class="sticky-col h-full border-r border-slate-700"></div>` + 
             Array.from({length: totalDays}, (_, i) => {
                 let d = new Date(globalMinDate); d.setDate(d.getDate() + i);
@@ -172,11 +184,24 @@
             content.appendChild(row);
 
             const track = document.getElementById(trackId);
+
+            // 1. Barra di Pianificazione (InizioPrevista -> FinePrevista)
+            if (t.inizioprevista && t.fineprevista) {
+                const dPlanStart = new Date(t.inizioprevista);
+                const dPlanEnd = new Date(t.fineprevista);
+                const planBar = document.createElement('div');
+                planBar.className = "planning-bar";
+                const planLeft = ((dPlanStart - globalMinDate)/86400000)*DAY_PX;
+                const planWidth = ((dPlanEnd - dPlanStart)/86400000)*DAY_PX;
+                planBar.style.left = `${planLeft}px`;
+                planBar.style.width = `${Math.max(15, planWidth)}px`;
+                track.appendChild(planBar);
+            }
+
+            // 2. Baseline Bianca (Vita reale del ticket)
             const dStart = t.data_inserimento ? new Date(t.data_inserimento) : now;
-            // Se chiuso usa data chiusura, altrimenti usa OGGI per far proseguire la linea
             const dEndBaseline = t.datachiuso ? new Date(t.datachiuso) : now;
             
-            // Baseline Bianca (Durata totale ticket)
             const bl = document.createElement('div');
             bl.className = "baseline-ticket";
             const leftPos = ((dStart - globalMinDate)/86400000)*DAY_PX;
@@ -186,6 +211,7 @@
             bl.style.width = `${Math.max(10, widthBaseline)}px`;
             track.appendChild(bl);
 
+            // 3. Segmenti degli Stati
             const map = [
                 {s:'datanuovo', e:'datanuovos', l:'Nuovo', c:'st-nuovo'},
                 {s:'datainlavorazione', e:'datainlavoraziones', l:'Lavorazione', c:'st-lavorazione'},
@@ -205,6 +231,7 @@
                     bar.innerHTML = `<span class="px-2">${m.l}</span>`;
                     track.appendChild(bar);
 
+                    // Gestione ritardo rispetto a fine stimata segmento
                     if(sRaw.includes(m.l.toUpperCase()) && now > dE && !t.datachiuso) {
                         isDelayed = true;
                         const dBar = document.createElement('div');
@@ -216,6 +243,7 @@
                 }
             });
 
+            // Gestione Ritardo Generale (SLA)
             if(isDelayed) { delayCount++; row.querySelector('.sticky-col').classList.add('ticket-delayed'); }
         });
 
