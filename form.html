@@ -398,7 +398,7 @@
 
         try {
             const [resStati, resTipi, resPriorita, resAmbiti, resMenu, resIds] = await Promise.all([
-                _supabase.from('stato').select('id, stato, descrizione, gg').order('id', { ascending: true }),
+                _supabase.from('stato').select('id, stato, descrizione, gg, seq').order('seq', { ascending: true }),
                 _supabase.from('tipo').select('tipo'),
                 _supabase.from('priorita').select('priorita'),
                 _supabase.from('ambito').select('ambito'),
@@ -452,7 +452,8 @@
                 if (!val) return; 
                 const isAnnullato = (typeof val === 'string' && val.toUpperCase() === 'ANNULLATO');
                 const sId = i.id || 0;
-                options += `<option value="${val}" data-id="${sId}" class="${isAnnullato ? 'opt-annullato' : ''}">${val}</option>`;
+                const sSeq = (i.seq !== undefined && i.seq !== null) ? i.seq : 0;
+                options += `<option value="${val}" data-id="${sId}" data-seq="${sSeq}" class="${isAnnullato ? 'opt-annullato' : ''}">${val}</option>`;
             });
             select.innerHTML = options;
         }
@@ -463,12 +464,16 @@
         const options = select.options;
         const attualeFound = listaStatiGlobal.find(s => s.stato === statoAttuale);
         if (!attualeFound) return;
-        const currentOrder = attualeFound.id;
+        const currentSeq = (attualeFound.seq !== undefined && attualeFound.seq !== null) ? attualeFound.seq : 0;
 
         for (let i = 0; i < options.length; i++) {
-            const optId = parseInt(options[i].getAttribute('data-id'));
-            const optVal = options[i].value.toUpperCase();
-            if (optId < currentOrder && optVal !== 'ANNULLATO') {
+            const optSeq = parseInt(options[i].getAttribute('data-seq'));
+            // Gli stati con seq=0 sono sempre selezionabili (es. Annullato)
+            if (optSeq === 0) {
+                options[i].disabled = false;
+                continue;
+            }
+            if (optSeq < currentSeq) {
                 options[i].disabled = true;
             }
         }
