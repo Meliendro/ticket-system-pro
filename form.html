@@ -79,6 +79,12 @@
         option.opt-annullato { color: var(--danger); font-weight: bold; }
         .annullato-warning { background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; text-align: center; display: none; }
 
+        .note-input-area { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+        .note-input-area textarea { flex: 1; height: 70px; }
+        .btn-nota { background: #f59e0b; color: white; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; font-size: 12px; text-transform: uppercase; white-space: nowrap; transition: 0.3s; }
+        .btn-nota:hover { background: #d97706; }
+        #note { font-family: 'Courier New', monospace; font-size: 12px; background-color: #fcfcfc; color: #444; height: 160px; }
+
         /* ===== STILE STAMPA PDF ===== */
         @media print {
             @page {
@@ -341,6 +347,17 @@
             </div>
         </div>
 
+        <div class="session-title"><span>Note</span></div>
+        <div class="full-width">
+            <label>Nuova Nota</label>
+            <div class="note-input-area">
+                <textarea id="nuova-nota" placeholder="Scrivi qui la tua nota..."></textarea>
+                <button type="button" class="btn-nota" onclick="aggiungiNota()">➕ Aggiungi Nota</button>
+            </div>
+            <label>Storico Note</label>
+            <textarea id="note" placeholder="Le note verranno visualizzate qui..." readonly></textarea>
+        </div>
+
         <div class="full-width">
             <label>Log Tecnico (Storico modifiche)</label>
             <textarea id="logtecnico" placeholder="Storico automatico..." readonly></textarea>
@@ -536,6 +553,7 @@
             document.getElementById('fineprevista').value = data.fineprevista || '';
             document.getElementById('datarilascio').value = data.datarilascio || '';
             document.getElementById('logtecnico').value = data.logtecnico || '';
+            document.getElementById('note').value = data.note || '';
             
             workflowFields.forEach(f => {
                 const fData = document.getElementById(f);
@@ -595,6 +613,7 @@
             fineprevista: document.getElementById('fineprevista').value || null,
             datarilascio: document.getElementById('datarilascio').value || null,
             logtecnico: logAttuale,
+            note: document.getElementById('note').value,
             updated_by: user.id
         };
 
@@ -609,6 +628,23 @@
         if (!res.error) location.href = 'ticket_table.html';
         else alert("Errore: " + res.error.message);
     });
+
+    // ===== FUNZIONE AGGIUNGI NOTA =====
+    async function aggiungiNota() {
+        const testoNota = document.getElementById('nuova-nota').value.trim();
+        if (!testoNota) {
+            alert('Scrivi una nota prima di aggiungerla.');
+            return;
+        }
+        const { data: { user } } = await _supabase.auth.getUser();
+        const email = user ? user.email : 'Utente sconosciuto';
+        const ora = new Date().toLocaleString('it-IT');
+        const intestazione = `[${ora}] ${email}`;
+        const notaFormattata = `${intestazione}\n${testoNota}\n${'─'.repeat(50)}`;
+        const storicoAttuale = document.getElementById('note').value;
+        document.getElementById('note').value = notaFormattata + (storicoAttuale ? '\n' + storicoAttuale : '');
+        document.getElementById('nuova-nota').value = '';
+    }
 
     inizializza();
 </script>
